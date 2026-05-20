@@ -8,7 +8,9 @@ export type ItemStatus =
   | "proposed"
   | "accepted"
   | "deprecated"
-  | "superseded";
+  | "superseded"
+  | "planned"
+  | "released";
 
 export type ItemPriority = "low" | "medium" | "high";
 export type ItemType =
@@ -20,7 +22,9 @@ export type ItemType =
   | "nfr"
   | "adr"
   | "arch"
-  | "tech-spec";
+  | "tech-spec"
+  | "sprint"
+  | "release";
 
 export interface SpecFrontMatter {
   id: string;
@@ -36,10 +40,16 @@ export interface SpecFrontMatter {
   linkedIds?: string;
   /** Comma-separated item IDs this item depends on (must be completed first) */
   dependsOn?: string;
+  /** Sprint this item belongs to */
+  sprintId?: string;
+  /** Release this item belongs to */
+  releaseId?: string;
   /** Planned start date — ISO YYYY-MM-DD */
   startDate?: string;
   /** Planned due date — ISO YYYY-MM-DD */
   dueDate?: string;
+  /** Release date (for releases) — ISO YYYY-MM-DD */
+  releaseDate?: string;
   priority?: ItemPriority;
 }
 
@@ -50,12 +60,7 @@ export interface SpecItem {
 }
 
 export const EPIC_STATUSES: ItemStatus[] = ["draft", "active", "done"];
-export const STORY_STATUSES: ItemStatus[] = [
-  "draft",
-  "active",
-  "in-progress",
-  "done",
-];
+export const STORY_STATUSES: ItemStatus[] = ["draft", "active", "done"];
 export const TASK_STATUSES: ItemStatus[] = [
   "todo",
   "in-progress",
@@ -70,3 +75,5 @@ export const ADR_STATUSES: ItemStatus[] = [
   "superseded",
 ];
 export const TECH_STATUSES: ItemStatus[] = ["draft", "active", "done"];
+export const SPRINT_STATUSES: ItemStatus[] = ["planned", "active", "done"];
+export const RELEASE_STATUSES: ItemStatus[] = ["draft", "active", "released"];

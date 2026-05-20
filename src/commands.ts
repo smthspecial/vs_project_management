@@ -5,18 +5,22 @@ import { SpecTreeDataProvider, SpecTreeItem } from "./specTree";
 import {
   generateId,
   buildFrontMatter,
+  parseFrontMatter,
   getSpecDir,
   getTypeDir,
 } from "./specParser";
 import {
   ItemStatus,
   ItemPriority,
+  SpecFrontMatter,
   EPIC_STATUSES,
   STORY_STATUSES,
   TASK_STATUSES,
   FR_NFR_STATUSES,
   ADR_STATUSES,
   TECH_STATUSES,
+  SPRINT_STATUSES,
+  RELEASE_STATUSES,
 } from "./models";
 
 // ---------------------------------------------------------------------------
@@ -282,7 +286,11 @@ async function changeStatus(node?: SpecTreeItem): Promise<void> {
             ? FR_NFR_STATUSES
             : type === "adr"
               ? ADR_STATUSES
-              : TECH_STATUSES;
+              : type === "sprint"
+                ? SPRINT_STATUSES
+                : type === "release"
+                  ? RELEASE_STATUSES
+                  : TECH_STATUSES;
 
   const pick = await vscode.window.showQuickPick(
     statusList.map((s) => ({
@@ -530,6 +538,228 @@ async function createTechSpec(
 }
 
 // ---------------------------------------------------------------------------
+// Sprints
+// ---------------------------------------------------------------------------
+
+async function createSprint(
+  provider: SpecTreeDataProvider,
+  getRootPath: () => string | undefined,
+): Promise<void> {
+  const rootPath = await requireRootPath(getRootPath);
+  if (!rootPath) {
+    return;
+  }
+
+  const title = await vscode.window.showInputBox({
+    prompt: "Sprint title",
+    placeHolder: "e.g. Sprint 1 - Authentication",
+    validateInput: (v) => (v.trim() ? null : "Title cannot be empty"),
+  });
+  if (!title) {
+    return;
+  }
+
+  const startDate = await vscode.window.showInputBox({
+    prompt: "Sprint start date (YYYY-MM-DD)",
+    placeHolder: new Date().toISOString().split("T")[0],
+    validateInput: (v) =>
+      /^\d{4}-\d{2}-\d{2}$/.test(v.trim()) ? null : "Use format YYYY-MM-DD",
+  });
+  if (!startDate) {
+    return;
+  }
+
+  const dueDate = await vscode.window.showInputBox({
+    prompt: "Sprint end date (YYYY-MM-DD)",
+    placeHolder: "",
+    validateInput: (v) =>
+      /^\d{4}-\d{2}-\d{2}$/.test(v.trim()) ? null : "Use format YYYY-MM-DD",
+  });
+  if (!dueDate) {
+    return;
+  }
+
+  const items = provider.getAllItems();
+  const id = generateId(items, "sprint");
+  const dir = getTypeDir(rootPath, "sprint");
+  ensureDir(dir);
+  const filePath = path.join(dir, `${id.toLowerCase()}.md`);
+
+  const frontMatter = buildFrontMatter({
+    id,
+    type: "sprint",
+    title: title.trim(),
+    status: "planned",
+    startDate: startDate.trim(),
+    dueDate: dueDate.trim(),
+    created: today(),
+  });
+
+  const body =
+    `## Goal\n\n${title.trim()}\n\n` +
+    `## Stories\n\n<!-- Stories assigned to this sprint will appear here -->\n`;
+
+  fs.writeFileSync(filePath, frontMatter + body, "utf-8");
+  provider.refresh();
+  await openFile(filePath);
+}
+
+// ---------------------------------------------------------------------------
+// Releases
+// ---------------------------------------------------------------------------
+
+async function createRelease(
+  provider: SpecTreeDataProvider,
+  getRootPath: () => string | undefined,
+): Promise<void> {
+  const rootPath = await requireRootPath(getRootPath);
+  if (!rootPath) {
+    return;
+  }
+
+  const title = await vscode.window.showInputBox({
+    prompt: "Release title",
+    placeHolder: "e.g. v1.0.0 - Initial Release",
+    validateInput: (v) => (v.trim() ? null : "Title cannot be empty"),
+  });
+  if (!title) {
+    return;
+  }
+
+  const releaseDate = await vscode.window.showInputBox({
+    prompt: "Release date (YYYY-MM-DD)",
+    placeHolder: "",
+    validateInput: (v) =>
+      /^\d{4}-\d{2}-\d{2}$/.test(v.trim()) ? null : "Use format YYYY-MM-DD",
+  });
+  if (!releaseDate) {
+    return;
+  }
+
+  const items = provider.getAllItems();
+  const id = generateId(items, "release");
+  const dir = getTypeDir(rootPath, "release");
+  ensureDir(dir);
+  const filePath = path.join(dir, `${id.toLowerCase()}.md`);
+
+  const frontMatter = buildFrontMatter({
+    id,
+    type: "release",
+    title: title.trim(),
+    status: "draft",
+    releaseDate: releaseDate.trim(),
+    created: today(),
+  });
+
+  const body =
+    `## Overview\n\n${title.trim()}\n\n` +
+    `## What's Included\n\n<!-- Stories and tasks in this release -->\n\n` +
+    `## Release Notes\n\n- \n`;
+
+  fs.writeFileSync(filePath, frontMatter + body, "utf-8");
+  provider.refresh();
+  await openFile(filePath);
+}
+
+// ---------------------------------------------------------------------------
+// Add to Sprint / Release
+// ---------------------------------------------------------------------------
+
+async function addToSprint(
+  provider: SpecTreeDataProvider,
+  node?: SpecTreeItem,
+): Promise<void> {
+  if (!node?.spec) {
+    return;
+  }
+
+  const items = provider.getAllItems();
+  const sprintItems = items.filter((i) => i.data.type === "sprint");
+
+  if (sprintItems.length === 0) {
+    vscode.window.showErrorMessage("No sprints found. Create a sprint first.");
+    return;
+  }
+
+  const pick = await vscode.window.showQuickPick(
+    [
+      { label: "(none)", description: "Remove sprint assignment", id: "" },
+      ...sprintItems.map((i) => ({
+        label: i.data.id,
+        description: i.data.title,
+        id: i.data.id,
+      })),
+    ],
+    { placeHolder: "Assign to sprint (or select none to unlink)" },
+  );
+  if (pick === undefined) {
+    return;
+  }
+
+  const content = fs.readFileSync(node.spec.filePath, "utf-8");
+  const { data, body } = parseFrontMatter(content);
+  if (!data.id) {
+    return;
+  }
+  if (pick.id) {
+    data.sprintId = pick.id;
+  } else {
+    delete data.sprintId;
+  }
+  const newFm = buildFrontMatter(data as SpecFrontMatter);
+  fs.writeFileSync(node.spec.filePath, newFm + body, "utf-8");
+  provider.refresh();
+}
+
+async function addToRelease(
+  provider: SpecTreeDataProvider,
+  node?: SpecTreeItem,
+): Promise<void> {
+  if (!node?.spec) {
+    return;
+  }
+
+  const items = provider.getAllItems();
+  const releaseItems = items.filter((i) => i.data.type === "release");
+
+  if (releaseItems.length === 0) {
+    vscode.window.showErrorMessage(
+      "No releases found. Create a release first.",
+    );
+    return;
+  }
+
+  const pick = await vscode.window.showQuickPick(
+    [
+      { label: "(none)", description: "Remove release assignment", id: "" },
+      ...releaseItems.map((i) => ({
+        label: i.data.id,
+        description: i.data.title,
+        id: i.data.id,
+      })),
+    ],
+    { placeHolder: "Assign to release (or select none to unlink)" },
+  );
+  if (pick === undefined) {
+    return;
+  }
+
+  const content = fs.readFileSync(node.spec.filePath, "utf-8");
+  const { data, body } = parseFrontMatter(content);
+  if (!data.id) {
+    return;
+  }
+  if (pick.id) {
+    data.releaseId = pick.id;
+  } else {
+    delete data.releaseId;
+  }
+  const newFm = buildFrontMatter(data as SpecFrontMatter);
+  fs.writeFileSync(node.spec.filePath, newFm + body, "utf-8");
+  provider.refresh();
+}
+
+// ---------------------------------------------------------------------------
 // Dependencies
 // ---------------------------------------------------------------------------
 
@@ -663,6 +893,24 @@ export function registerCommands(
     vscode.commands.registerCommand(
       "project-spec.addDependency",
       (node?: SpecTreeItem) => addDependency(provider, node),
+    ),
+
+    vscode.commands.registerCommand("project-spec.newSprint", () =>
+      createSprint(provider, getRootPath),
+    ),
+
+    vscode.commands.registerCommand("project-spec.newRelease", () =>
+      createRelease(provider, getRootPath),
+    ),
+
+    vscode.commands.registerCommand(
+      "project-spec.addToSprint",
+      (node?: SpecTreeItem) => addToSprint(provider, node),
+    ),
+
+    vscode.commands.registerCommand(
+      "project-spec.addToRelease",
+      (node?: SpecTreeItem) => addToRelease(provider, node),
     ),
   );
 }

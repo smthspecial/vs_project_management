@@ -16,6 +16,8 @@ const TYPE_ICON: Record<string, string> = {
   adr: "history",
   arch: "layout",
   "tech-spec": "file-code",
+  sprint: "calendar",
+  release: "tag",
 };
 
 const STATUS_BADGE: Record<string, string> = {
@@ -29,6 +31,8 @@ const STATUS_BADGE: Record<string, string> = {
   accepted: "✓",
   deprecated: "↓",
   superseded: "↻",
+  planned: "◷",
+  released: "✓",
 };
 
 export class SpecTreeItem extends vscode.TreeItem {
@@ -127,7 +131,8 @@ export class SpecTreeDataProvider implements vscode.TreeDataProvider<AnyTreeItem
     if (!element) {
       return [
         new TreeGroupItem("requirements", "Requirements", "list-unordered"),
-        new TreeGroupItem("planning", "Planning", "project"),
+        new TreeGroupItem("backlog", "Backlog", "archive"),
+        new TreeGroupItem("sprints-releases", "Sprints & Releases", "calendar"),
         new TreeGroupItem("technical", "Technical", "circuit-board"),
       ];
     }
@@ -147,7 +152,7 @@ export class SpecTreeDataProvider implements vscode.TreeDataProvider<AnyTreeItem
               "symbol-property",
             ),
           ];
-        case "planning":
+        case "backlog":
           return this.items
             .filter((i) => i.data.type === "epic")
             .sort((a, b) => a.data.id.localeCompare(b.data.id))
@@ -162,6 +167,37 @@ export class SpecTreeDataProvider implements vscode.TreeDataProvider<AnyTreeItem
                   : vscode.TreeItemCollapsibleState.Collapsed,
               );
             });
+        case "sprints-releases":
+          return [
+            new TreeGroupItem("sprints", "Sprints", "calendar"),
+            new TreeGroupItem("releases", "Releases", "tag"),
+          ];
+        case "sprints":
+          return this.items
+            .filter((i) => i.data.type === "sprint")
+            .sort((a, b) => a.data.id.localeCompare(b.data.id))
+            .map((i) => {
+              const hasStories = this.items.some(
+                (s) =>
+                  (s.data.type === "story" ||
+                    s.data.type === "task" ||
+                    s.data.type === "bug") &&
+                  s.data.sprintId === i.data.id,
+              );
+              return new SpecTreeItem(
+                i,
+                hasStories
+                  ? vscode.TreeItemCollapsibleState.Collapsed
+                  : vscode.TreeItemCollapsibleState.None,
+              );
+            });
+        case "releases":
+          return this.items
+            .filter((i) => i.data.type === "release")
+            .sort((a, b) => a.data.id.localeCompare(b.data.id))
+            .map(
+              (i) => new SpecTreeItem(i, vscode.TreeItemCollapsibleState.None),
+            );
         case "technical":
           return [
             new TreeGroupItem("adr", "Architectural Decisions", "history"),
@@ -228,6 +264,19 @@ export class SpecTreeDataProvider implements vscode.TreeDataProvider<AnyTreeItem
               : vscode.TreeItemCollapsibleState.Collapsed,
           );
         });
+    }
+
+    if (type === "sprint") {
+      return this.items
+        .filter(
+          (i) =>
+            (i.data.type === "story" ||
+              i.data.type === "task" ||
+              i.data.type === "bug") &&
+            i.data.sprintId === id,
+        )
+        .sort((a, b) => a.data.id.localeCompare(b.data.id))
+        .map((i) => new SpecTreeItem(i, vscode.TreeItemCollapsibleState.None));
     }
 
     if (type === "story") {

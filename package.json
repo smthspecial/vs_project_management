@@ -143,6 +143,30 @@
         "title": "Add Dependency…",
         "icon": "$(link)",
         "category": "Project Spec"
+      },
+      {
+        "command": "project-spec.newSprint",
+        "title": "New Sprint",
+        "icon": "$(add)",
+        "category": "Project Spec"
+      },
+      {
+        "command": "project-spec.newRelease",
+        "title": "New Release",
+        "icon": "$(add)",
+        "category": "Project Spec"
+      },
+      {
+        "command": "project-spec.addToSprint",
+        "title": "Add to Sprint…",
+        "icon": "$(calendar)",
+        "category": "Project Spec"
+      },
+      {
+        "command": "project-spec.addToRelease",
+        "title": "Add to Release…",
+        "icon": "$(tag)",
+        "category": "Project Spec"
       }
     ],
     "menus": {
@@ -176,7 +200,7 @@
         },
         {
           "command": "project-spec.newEpic",
-          "when": "view == projectSpecTree && viewItem == group-planning",
+          "when": "view == projectSpecTree && viewItem == group-backlog",
           "group": "inline@1"
         },
         {
@@ -210,8 +234,18 @@
           "group": "inline@2"
         },
         {
+          "command": "project-spec.newSprint",
+          "when": "view == projectSpecTree && viewItem == group-sprints",
+          "group": "inline@1"
+        },
+        {
+          "command": "project-spec.newRelease",
+          "when": "view == projectSpecTree && viewItem == group-releases",
+          "group": "inline@1"
+        },
+        {
           "command": "project-spec.changeStatus",
-          "when": "view == projectSpecTree && viewItem =~ /^(epic|story|task|bug|fr|nfr|adr|arch|tech-spec)$/",
+          "when": "view == projectSpecTree && viewItem =~ /^(epic|story|task|bug|fr|nfr|adr|arch|tech-spec|sprint|release)$/",
           "group": "1_actions@1"
         },
         {
@@ -235,8 +269,18 @@
           "group": "1_actions@5"
         },
         {
+          "command": "project-spec.addToSprint",
+          "when": "view == projectSpecTree && viewItem =~ /^(story|task|bug)$/",
+          "group": "1_actions@6"
+        },
+        {
+          "command": "project-spec.addToRelease",
+          "when": "view == projectSpecTree && viewItem =~ /^(story|task|bug)$/",
+          "group": "1_actions@7"
+        },
+        {
           "command": "project-spec.deleteItem",
-          "when": "view == projectSpecTree && viewItem =~ /^(epic|story|task|bug|fr|nfr|adr|arch|tech-spec)$/",
+          "when": "view == projectSpecTree && viewItem =~ /^(epic|story|task|bug|fr|nfr|adr|arch|tech-spec|sprint|release)$/",
           "group": "9_delete@1"
         }
       ]

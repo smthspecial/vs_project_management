@@ -58,8 +58,11 @@ export function parseFrontMatter(content: string): {
     storyId: raw["storyId"],
     linkedIds: raw["linkedIds"],
     dependsOn: raw["dependsOn"],
+    sprintId: raw["sprintId"],
+    releaseId: raw["releaseId"],
     startDate: raw["startDate"],
     dueDate: raw["dueDate"],
+    releaseDate: raw["releaseDate"],
     priority: raw["priority"] as ItemPriority | undefined,
   };
 
@@ -89,11 +92,20 @@ export function buildFrontMatter(data: SpecFrontMatter): string {
   if (data.dependsOn) {
     lines.push(`dependsOn: ${data.dependsOn}`);
   }
+  if (data.sprintId) {
+    lines.push(`sprintId: ${data.sprintId}`);
+  }
+  if (data.releaseId) {
+    lines.push(`releaseId: ${data.releaseId}`);
+  }
   if (data.startDate) {
     lines.push(`startDate: ${data.startDate}`);
   }
   if (data.dueDate) {
     lines.push(`dueDate: ${data.dueDate}`);
+  }
+  if (data.releaseDate) {
+    lines.push(`releaseDate: ${data.releaseDate}`);
   }
   if (data.priority) {
     lines.push(`priority: ${data.priority}`);
@@ -123,6 +135,8 @@ export function getTypeDir(rootPath: string, type: ItemType): string {
     adr: "technical/adr",
     arch: "technical/architecture",
     "tech-spec": "technical/specs",
+    sprint: "planning/sprints",
+    release: "planning/releases",
   };
   return path.join(getSpecDir(rootPath), subdirMap[type] ?? type);
 }
@@ -157,6 +171,8 @@ export function readAllSpecItems(rootPath: string): SpecItem[] {
     "planning/epics",
     "planning/stories",
     "planning/tasks",
+    "planning/sprints",
+    "planning/releases",
     "technical/adr",
     "technical/architecture",
     "technical/specs",
@@ -200,7 +216,11 @@ export function generateId(items: SpecItem[], type: ItemType): string {
                   ? "ADR"
                   : type === "arch"
                     ? "ARCH"
-                    : "SPEC";
+                    : type === "sprint"
+                      ? "SPR"
+                      : type === "release"
+                        ? "REL"
+                        : "SPEC";
 
   const existing = items
     .filter((i) => i.data.type === type)

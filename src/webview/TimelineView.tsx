@@ -158,6 +158,7 @@ export function TimelineView({ items }: TimelineViewProps): React.ReactElement {
 
   const dragRef = useRef<DragState | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [draggingId, setDraggingId] = useState<string | null>(null);
   // Keep a ref to localItems so window-level drag handlers can read latest state
   const localItemsRef = useRef<ItemData[]>(localItems);
   useEffect(() => {
@@ -169,6 +170,35 @@ export function TimelineView({ items }: TimelineViewProps): React.ReactElement {
   useEffect(() => {
     minDateRef.current = minDate;
   }, [minDate]);
+
+  // Sprint bands and release markers derived from all items
+  const sprintBands = useMemo(() => {
+    return localItems
+      .filter((i) => i.type === "sprint" && i.startDate && i.dueDate)
+      .map((spr) => ({
+        item: spr,
+        start: parseDate(spr.startDate!),
+        end: parseDate(spr.dueDate!),
+      }));
+  }, [localItems]);
+
+  const releaseMarkers = useMemo(() => {
+    return localItems
+      .filter((i) => i.type === "release" && (i.releaseDate ?? i.dueDate))
+      .map((rel) => ({
+        item: rel,
+        date: parseDate((rel.releaseDate ?? rel.dueDate)!),
+      }));
+  }, [localItems]);
+
+  const sprintBandsRef = useRef(sprintBands);
+  useEffect(() => {
+    sprintBandsRef.current = sprintBands;
+  }, [sprintBands]);
+  const releaseMarkersRef = useRef(releaseMarkers);
+  useEffect(() => {
+    releaseMarkersRef.current = releaseMarkers;
+  }, [releaseMarkers]);
 
   // x coordinate of drag-over indicator (null = not dragging)
   const [dropIndicatorX, setDropIndicatorX] = useState<number | null>(null);
@@ -283,6 +313,7 @@ export function TimelineView({ items }: TimelineViewProps): React.ReactElement {
         origStart: new Date(ti.start),
         origEnd: new Date(ti.end),
       };
+      setDraggingId(ti.item.id);
 
       const onMove = (ev: MouseEvent) => {
         const drag = dragRef.current;
@@ -325,9 +356,41 @@ export function TimelineView({ items }: TimelineViewProps): React.ReactElement {
               dueDate: item.dueDate,
               filePath: item.filePath,
             });
+
+            // Auto-assign sprint: find sprint whose date range overlaps the story
+            const storyStart = parseDate(item.startDate);
+            const storyEnd = parseDate(item.dueDate);
+            const matchedSprint = sprintBandsRef.current.find(
+              (spr) => storyStart <= spr.end && storyEnd >= spr.start,
+            );
+            if (matchedSprint) {
+              vscode.postMessage({
+                type: "updateSprint",
+                id: item.id,
+                sprintId: matchedSprint.item.id,
+                filePath: item.filePath,
+              } as WebviewMessage);
+            }
+
+            // Auto-assign release: earliest release whose date is >= story end
+            const sortedReleases = [...releaseMarkersRef.current].sort(
+              (a, b) => a.date.getTime() - b.date.getTime(),
+            );
+            const matchedRelease = sortedReleases.find(
+              (rel) => rel.date >= storyEnd,
+            );
+            if (matchedRelease) {
+              vscode.postMessage({
+                type: "updateRelease",
+                id: item.id,
+                releaseId: matchedRelease.item.id,
+                filePath: item.filePath,
+              } as WebviewMessage);
+            }
           }
           dragRef.current = null;
         }
+        setDraggingId(null);
         window.removeEventListener("mousemove", onMove);
         window.removeEventListener("mouseup", onUp);
       };
@@ -587,6 +650,42 @@ export function TimelineView({ items }: TimelineViewProps): React.ReactElement {
             </g>
           ))}
 
+          {/* Sprint bands — rendered behind everything */}
+          {sprintBands.map((spr, i) => {
+            const x1 = Math.max(0, daysBetween(minDate, spr.start) * DAY_WIDTH);
+            const x2 = Math.min(
+              totalWidth,
+              daysBetween(minDate, spr.end) * DAY_WIDTH,
+            );
+            const w = x2 - x1;
+            if (w <= 0) return null;
+            const bandColor = ["#2563eb", "#7c3aed", "#0d9488", "#d97706"][
+              i % 4
+            ];
+            return (
+              <g key={spr.item.id}>
+                <rect
+                  x={x1}
+                  y={HEADER_HEIGHT}
+                  width={w}
+                  height={svgHeight - HEADER_HEIGHT}
+                  fill={bandColor}
+                  opacity={0.07}
+                />
+                <text
+                  x={x1 + 4}
+                  y={HEADER_HEIGHT + 14}
+                  fontSize={10}
+                  fill={bandColor}
+                  opacity={0.7}
+                  style={{ pointerEvents: "none", userSelect: "none" }}
+                >
+                  {spr.item.title}
+                </text>
+              </g>
+            );
+          })}
+
           {/* Row backgrounds */}
           {timelineItems.map((ti, idx) => (
             <rect
@@ -603,6 +702,36 @@ export function TimelineView({ items }: TimelineViewProps): React.ReactElement {
               opacity={0.3}
             />
           ))}
+
+          {/* Release markers */}
+          {releaseMarkers.map((rel) => {
+            const x = daysBetween(minDate, rel.date) * DAY_WIDTH;
+            if (x < 0 || x > totalWidth) return null;
+            return (
+              <g key={rel.item.id}>
+                <line
+                  x1={x}
+                  y1={HEADER_HEIGHT}
+                  x2={x}
+                  y2={svgHeight}
+                  stroke="#dc2626"
+                  strokeWidth={2}
+                  strokeDasharray="6 3"
+                  opacity={0.7}
+                />
+                <text
+                  x={x + 4}
+                  y={HEADER_HEIGHT + 28}
+                  fontSize={10}
+                  fill="#dc2626"
+                  opacity={0.85}
+                  style={{ pointerEvents: "none", userSelect: "none" }}
+                >
+                  {rel.item.title}
+                </text>
+              </g>
+            );
+          })}
 
           {/* Today line */}
           {todayX >= 0 && todayX <= totalWidth && (
@@ -703,9 +832,9 @@ export function TimelineView({ items }: TimelineViewProps): React.ReactElement {
                   style={{ cursor: "ew-resize" }}
                   onMouseDown={(e) => handleBarMouseDown(e, ti, "resize-end")}
                 />
-                {/* Label inside bar */}
+                {/* Date labels — always visible on the bar */}
                 <text
-                  x={x + 12}
+                  x={x + 10}
                   y={y + barH / 2 + 4}
                   fontSize={11}
                   fill="white"
@@ -715,6 +844,32 @@ export function TimelineView({ items }: TimelineViewProps): React.ReactElement {
                     ? ti.item.title.slice(0, Math.floor((width - 20) / 7))
                     : ""}
                 </text>
+                {/* Dates shown when dragging */}
+                {draggingId === ti.item.id && (
+                  <>
+                    <text
+                      x={x + 4}
+                      y={y - 4}
+                      fontSize={9}
+                      fill={ti.color}
+                      fontWeight={600}
+                      style={{ pointerEvents: "none", userSelect: "none" }}
+                    >
+                      {ti.item.startDate}
+                    </text>
+                    <text
+                      x={x + width - 4}
+                      y={y - 4}
+                      fontSize={9}
+                      fill={ti.color}
+                      fontWeight={600}
+                      textAnchor="end"
+                      style={{ pointerEvents: "none", userSelect: "none" }}
+                    >
+                      {ti.item.dueDate}
+                    </text>
+                  </>
+                )}
                 {/* Date tooltip on hover */}
                 <title>{`${ti.item.id}: ${ti.item.title}\n${ti.item.startDate} → ${ti.item.dueDate}`}</title>
               </g>

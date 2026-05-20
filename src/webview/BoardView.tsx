@@ -45,8 +45,6 @@ interface CardProps {
   item: ItemData;
   allItems: ItemData[];
   onOpen: (filePath: string) => void;
-  onStatusChange: (item: ItemData, newStatus: string) => void;
-  availableStatuses: string[];
   onDragStart: (id: string) => void;
   onDragEnd: () => void;
 }
@@ -55,8 +53,6 @@ function Card({
   item,
   allItems,
   onOpen,
-  onStatusChange,
-  availableStatuses,
   onDragStart,
   onDragEnd,
 }: CardProps): React.ReactElement {
@@ -100,21 +96,7 @@ function Card({
             {PRIORITY_ICON[item.priority] ?? ""}
           </span>
         )}
-        <select
-          className="status-select"
-          value={item.status}
-          onClick={(e) => e.stopPropagation()}
-          onChange={(e) => {
-            e.stopPropagation();
-            onStatusChange(item, e.target.value);
-          }}
-        >
-          {availableStatuses.map((s) => (
-            <option key={s} value={s}>
-              {s}
-            </option>
-          ))}
-        </select>
+        <span className="card-status">{item.status}</span>
       </div>
       <div className="card-title">{item.title}</div>
       <div className="card-id">{item.id}</div>
@@ -135,19 +117,29 @@ interface BoardViewProps {
 export function BoardView({ items }: BoardViewProps): React.ReactElement {
   // Board shows tasks and bugs only; epics/stories are on the Timeline.
   const taskItems = items.filter((i) => i.type === "task" || i.type === "bug");
+  const sprintItems = items.filter((i) => i.type === "sprint");
+  const releaseItems = items.filter((i) => i.type === "release");
 
   const [localItems, setLocalItems] = useState<ItemData[]>(taskItems);
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [dragOverCol, setDragOverCol] = useState<string | null>(null);
+  const [selectedSprint, setSelectedSprint] = useState<string>("all");
+  const [selectedRelease, setSelectedRelease] = useState<string>("all");
   const dragIdRef = useRef<string | null>(null);
 
   React.useEffect(() => {
     setLocalItems(items.filter((i) => i.type === "task" || i.type === "bug"));
   }, [items]);
 
-  const getStatuses = useCallback((_item: ItemData): string[] => {
-    return ["todo", "in-progress", "done", "closed"];
-  }, []);
+  const filteredItems = useMemo(() => {
+    return localItems.filter((i) => {
+      if (selectedSprint !== "all" && i.sprintId !== selectedSprint)
+        return false;
+      if (selectedRelease !== "all" && i.releaseId !== selectedRelease)
+        return false;
+      return true;
+    });
+  }, [localItems, selectedSprint, selectedRelease]);
 
   const handleStatusChange = useCallback(
     (item: ItemData, newStatus: string) => {
@@ -193,48 +185,78 @@ export function BoardView({ items }: BoardViewProps): React.ReactElement {
   );
 
   return (
-    <div className="board">
-      {COLUMNS.map(({ id, label }) => {
-        const cards = localItems.filter((i) => i.status === id);
-        const isOver = dragOverCol === id;
-        return (
-          <div
-            key={id}
-            className={`column${isOver ? " drag-over" : ""}`}
-            onDragOver={(e) => {
-              e.preventDefault();
-              e.dataTransfer.dropEffect = "move";
-              setDragOverCol(id);
-            }}
-            onDragLeave={() => setDragOverCol(null)}
-            onDrop={() => handleDrop(id)}
+    <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+      <div className="board-filters">
+        <label>
+          Sprint:&nbsp;
+          <select
+            value={selectedSprint}
+            onChange={(e) => setSelectedSprint(e.target.value)}
           >
-            <div className="column-header">
-              <span>{label}</span>
-              <span className="count">{cards.length}</span>
+            <option value="all">All sprints</option>
+            {sprintItems.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.title}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          Release:&nbsp;
+          <select
+            value={selectedRelease}
+            onChange={(e) => setSelectedRelease(e.target.value)}
+          >
+            <option value="all">All releases</option>
+            {releaseItems.map((r) => (
+              <option key={r.id} value={r.id}>
+                {r.title}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+      <div className="board">
+        {COLUMNS.map(({ id, label }) => {
+          const cards = filteredItems.filter((i) => i.status === id);
+          const isOver = dragOverCol === id;
+          return (
+            <div
+              key={id}
+              className={`column${isOver ? " drag-over" : ""}`}
+              onDragOver={(e) => {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = "move";
+                setDragOverCol(id);
+              }}
+              onDragLeave={() => setDragOverCol(null)}
+              onDrop={() => handleDrop(id)}
+            >
+              <div className="column-header">
+                <span>{label}</span>
+                <span className="count">{cards.length}</span>
+              </div>
+              <div className="cards">
+                {cards.length === 0 && !isOver ? (
+                  <div className="empty">No items</div>
+                ) : (
+                  cards.map((item) => (
+                    <Card
+                      key={item.id}
+                      item={item}
+                      allItems={filteredItems}
+                      onOpen={handleOpen}
+                      onDragStart={handleDragStart}
+                      onDragEnd={handleDragEnd}
+                    />
+                  ))
+                )}
+                {isOver && draggingId && <div className="drop-placeholder" />}
+              </div>
             </div>
-            <div className="cards">
-              {cards.length === 0 && !isOver ? (
-                <div className="empty">No items</div>
-              ) : (
-                cards.map((item) => (
-                  <Card
-                    key={item.id}
-                    item={item}
-                    allItems={localItems}
-                    onOpen={handleOpen}
-                    onStatusChange={handleStatusChange}
-                    availableStatuses={getStatuses(item)}
-                    onDragStart={handleDragStart}
-                    onDragEnd={handleDragEnd}
-                  />
-                ))
-              )}
-              {isOver && draggingId && <div className="drop-placeholder" />}
-            </div>
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
     </div>
   );
 }

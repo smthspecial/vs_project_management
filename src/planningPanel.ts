@@ -174,6 +174,13 @@ const STYLES = /* css */ `
 
   .card-id { font-size: 10px; opacity: 0.5; }
 
+  .card-status {
+    margin-left: auto;
+    font-size: 10px;
+    opacity: 0.55;
+    font-style: italic;
+  }
+
   .card-tag {
     margin-top: 5px;
     font-size: 10px;
@@ -404,6 +411,8 @@ export class PlanningPanel {
         status?: string;
         startDate?: string;
         dueDate?: string;
+        sprintId?: string;
+        releaseId?: string;
       }) => {
         if (msg.type === "openFile" && msg.filePath) {
           vscode.window.showTextDocument(vscode.Uri.file(msg.filePath));
@@ -424,6 +433,10 @@ export class PlanningPanel {
             startDate: msg.startDate,
             dueDate: msg.dueDate,
           });
+        } else if (msg.type === "updateSprint" && msg.filePath) {
+          this._onPatch(msg.filePath, { sprintId: msg.sprintId ?? "" });
+        } else if (msg.type === "updateRelease" && msg.filePath) {
+          this._onPatch(msg.filePath, { releaseId: msg.releaseId ?? "" });
         }
       },
       null,
@@ -450,9 +463,12 @@ export class PlanningPanel {
       priority: i.data.priority,
       epicId: i.data.epicId,
       storyId: i.data.storyId,
+      sprintId: i.data.sprintId,
+      releaseId: i.data.releaseId,
       dependsOn: i.data.dependsOn,
       startDate: i.data.startDate,
       dueDate: i.data.dueDate,
+      releaseDate: i.data.releaseDate,
       filePath: i.filePath,
     }));
     this._panel.webview.postMessage({ type: "update", items: data });

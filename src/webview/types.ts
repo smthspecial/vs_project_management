@@ -8,9 +8,12 @@ export interface ItemData {
   priority?: string;
   epicId?: string;
   storyId?: string;
+  sprintId?: string;
+  releaseId?: string;
   dependsOn?: string; // comma-separated IDs
   startDate?: string; // YYYY-MM-DD
   dueDate?: string; // YYYY-MM-DD
+  releaseDate?: string; // YYYY-MM-DD
   filePath: string;
 }
 
@@ -29,4 +32,6 @@ export type WebviewMessage =
       startDate: string;
       dueDate: string;
       filePath: string;
-    };
+    }
+  | { type: "updateSprint"; id: string; sprintId: string; filePath: string }
+  | { type: "updateRelease"; id: string; releaseId: string; filePath: string };
