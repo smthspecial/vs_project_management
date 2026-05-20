@@ -1,0 +1,275 @@
+{
+  "name": "project-spec",
+  "displayName": "Project Spec",
+  "description": "Project planning extension: requirements, epics, user stories, tasks, ADRs, and architecture docs",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.120.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "projectSpec",
+          "title": "Project Spec",
+          "icon": "resources/spec.svg"
+        }
+      ],
+      "panel": [
+        {
+          "id": "projectSpecPanel",
+          "title": "Project Spec",
+          "icon": "resources/spec.svg"
+        }
+      ]
+    },
+    "views": {
+      "projectSpec": [
+        {
+          "id": "projectSpecTree",
+          "name": "Specifications",
+          "contextualTitle": "Project Spec"
+        }
+      ],
+      "projectSpecPanel": [
+        {
+          "id": "projectSpecKanban",
+          "name": "Kanban",
+          "type": "webview",
+          "contextualTitle": "Project Spec Kanban"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "projectSpecTree",
+        "contents": "No specifications found.\n\nStart planning your project:\n\n[$(add) New Epic](command:project-spec.newEpic)  [$(add) New FR](command:project-spec.newFr)  [$(add) New ADR](command:project-spec.newAdr)\n\nSpec files are stored in a `.spec/` folder at the root of your workspace.\n\nStructure:\n```\n.spec/\n  requirements/fr/   ← Functional Requirements\n  requirements/nfr/  ← Non-Functional Requirements\n  planning/epics/    ← Epics\n  planning/stories/  ← User Stories\n  planning/tasks/    ← Tasks & Bugs\n  technical/adr/     ← Architectural Decisions\n  technical/architecture/ ← Architecture Docs\n  technical/specs/   ← Technical Specifications\n```",
+        "when": "workbenchState != empty"
+      }
+    ],
+    "commands": [
+      {
+        "command": "project-spec.refresh",
+        "title": "Refresh",
+        "icon": "$(refresh)",
+        "category": "Project Spec"
+      },
+      {
+        "command": "project-spec.newEpic",
+        "title": "New Epic",
+        "icon": "$(add)",
+        "category": "Project Spec"
+      },
+      {
+        "command": "project-spec.newStory",
+        "title": "New User Story",
+        "icon": "$(add)",
+        "category": "Project Spec"
+      },
+      {
+        "command": "project-spec.newTask",
+        "title": "New Task",
+        "icon": "$(add)",
+        "category": "Project Spec"
+      },
+      {
+        "command": "project-spec.newBug",
+        "title": "New Bug",
+        "icon": "$(bug)",
+        "category": "Project Spec"
+      },
+      {
+        "command": "project-spec.changeStatus",
+        "title": "Change Status…",
+        "icon": "$(sync)",
+        "category": "Project Spec"
+      },
+      {
+        "command": "project-spec.openFile",
+        "title": "Open File",
+        "category": "Project Spec"
+      },
+      {
+        "command": "project-spec.deleteItem",
+        "title": "Delete",
+        "icon": "$(trash)",
+        "category": "Project Spec"
+      },
+      {
+        "command": "project-spec.newFr",
+        "title": "New Functional Requirement",
+        "icon": "$(add)",
+        "category": "Project Spec"
+      },
+      {
+        "command": "project-spec.newNfr",
+        "title": "New Non-Functional Requirement",
+        "icon": "$(add)",
+        "category": "Project Spec"
+      },
+      {
+        "command": "project-spec.newAdr",
+        "title": "New ADR",
+        "icon": "$(add)",
+        "category": "Project Spec"
+      },
+      {
+        "command": "project-spec.newArch",
+        "title": "New Architecture Doc",
+        "icon": "$(add)",
+        "category": "Project Spec"
+      },
+      {
+        "command": "project-spec.newTechSpec",
+        "title": "New Technical Specification",
+        "icon": "$(add)",
+        "category": "Project Spec"
+      },
+      {
+        "command": "project-spec.openPlanning",
+        "title": "Open Planning Board & Timeline",
+        "icon": "$(project)",
+        "category": "Project Spec"
+      },
+      {
+        "command": "project-spec.addDependency",
+        "title": "Add Dependency…",
+        "icon": "$(link)",
+        "category": "Project Spec"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "project-spec.openPlanning",
+          "when": "view == projectSpecTree",
+          "group": "navigation@2"
+        },
+        {
+          "command": "project-spec.newEpic",
+          "when": "view == projectSpecTree",
+          "group": "navigation@1"
+        },
+        {
+          "command": "project-spec.refresh",
+          "when": "view == projectSpecTree",
+          "group": "navigation@9"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "project-spec.newFr",
+          "when": "view == projectSpecTree && viewItem == group-requirements || view == projectSpecTree && viewItem == group-fr",
+          "group": "inline@1"
+        },
+        {
+          "command": "project-spec.newNfr",
+          "when": "view == projectSpecTree && viewItem == group-nfr",
+          "group": "inline@1"
+        },
+        {
+          "command": "project-spec.newEpic",
+          "when": "view == projectSpecTree && viewItem == group-planning",
+          "group": "inline@1"
+        },
+        {
+          "command": "project-spec.newAdr",
+          "when": "view == projectSpecTree && viewItem == group-technical || view == projectSpecTree && viewItem == group-adr",
+          "group": "inline@1"
+        },
+        {
+          "command": "project-spec.newArch",
+          "when": "view == projectSpecTree && viewItem == group-arch",
+          "group": "inline@1"
+        },
+        {
+          "command": "project-spec.newTechSpec",
+          "when": "view == projectSpecTree && viewItem == group-spec",
+          "group": "inline@1"
+        },
+        {
+          "command": "project-spec.newStory",
+          "when": "view == projectSpecTree && viewItem == epic",
+          "group": "inline@1"
+        },
+        {
+          "command": "project-spec.newTask",
+          "when": "view == projectSpecTree && viewItem == story",
+          "group": "inline@1"
+        },
+        {
+          "command": "project-spec.newBug",
+          "when": "view == projectSpecTree && viewItem == story",
+          "group": "inline@2"
+        },
+        {
+          "command": "project-spec.changeStatus",
+          "when": "view == projectSpecTree && viewItem =~ /^(epic|story|task|bug|fr|nfr|adr|arch|tech-spec)$/",
+          "group": "1_actions@1"
+        },
+        {
+          "command": "project-spec.newStory",
+          "when": "view == projectSpecTree && viewItem == epic",
+          "group": "1_actions@2"
+        },
+        {
+          "command": "project-spec.newTask",
+          "when": "view == projectSpecTree && viewItem == story",
+          "group": "1_actions@2"
+        },
+        {
+          "command": "project-spec.newBug",
+          "when": "view == projectSpecTree && viewItem == story",
+          "group": "1_actions@3"
+        },
+        {
+          "command": "project-spec.addDependency",
+          "when": "view == projectSpecTree && viewItem =~ /^(epic|story|task|bug|fr|nfr)$/",
+          "group": "1_actions@5"
+        },
+        {
+          "command": "project-spec.deleteItem",
+          "when": "view == projectSpecTree && viewItem =~ /^(epic|story|task|bug|fr|nfr|adr|arch|tech-spec)$/",
+          "group": "9_delete@1"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run package",
+    "compile": "npm run check-types && npm run lint && node esbuild.js",
+    "watch": "npm-run-all -p watch:*",
+    "watch:esbuild": "node esbuild.js --watch",
+    "watch:tsc": "tsc --noEmit --watch --project tsconfig.json",
+    "package": "npm run check-types && npm run lint && node esbuild.js --production",
+    "compile-tests": "tsc -p . --outDir out",
+    "watch-tests": "tsc -p . -w --outDir out",
+    "pretest": "npm run compile-tests && npm run compile && npm run lint",
+    "check-types": "tsc --noEmit",
+    "lint": "eslint src",
+    "test": "vscode-test"
+  },
+  "devDependencies": {
+    "@types/mocha": "^10.0.10",
+    "@types/node": "22.x",
+    "@types/react": "^19.2.15",
+    "@types/react-dom": "^19.2.3",
+    "@types/vscode": "^1.120.0",
+    "@vscode/test-cli": "^0.0.12",
+    "@vscode/test-electron": "^2.5.2",
+    "esbuild": "^0.27.3",
+    "eslint": "^9.39.3",
+    "npm-run-all": "^4.1.5",
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.56.1"
+  }
+}
