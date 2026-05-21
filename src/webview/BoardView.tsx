@@ -6,7 +6,7 @@ const COLUMNS = [
   { id: "todo", label: "To Do" },
   { id: "in-progress", label: "In Progress" },
   { id: "done", label: "Done" },
-  { id: "closed", label: "Closed" },
+  { id: "blocked", label: "Blocked" },
 ];
 
 const TYPE_COLOR: Record<string, string> = {

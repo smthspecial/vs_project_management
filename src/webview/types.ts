@@ -15,9 +15,11 @@ export interface ItemData {
   dueDate?: string; // YYYY-MM-DD
   releaseDate?: string; // YYYY-MM-DD
   filePath: string;
+  body?: string; // raw markdown body (only sent for db-table items)
+  relations?: string; // FK relations: "col:TBL-ID,col:TBL-ID"
 }
 
-export type View = "board" | "timeline" | "dependencies";
+export type View = "board" | "timeline" | "dependencies" | "database";
 
 // Messages extension → webview
 export type ExtensionMessage = { type: "update"; items: ItemData[] };
@@ -34,4 +36,6 @@ export type WebviewMessage =
       filePath: string;
     }
   | { type: "updateSprint"; id: string; sprintId: string; filePath: string }
-  | { type: "updateRelease"; id: string; releaseId: string; filePath: string };
+  | { type: "updateRelease"; id: string; releaseId: string; filePath: string }
+  | { type: "createTable" }
+  | { type: "deleteTable"; id: string; filePath: string };

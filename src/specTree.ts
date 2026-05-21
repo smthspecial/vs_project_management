@@ -16,6 +16,7 @@ const TYPE_ICON: Record<string, string> = {
   adr: "history",
   arch: "layout",
   "tech-spec": "file-code",
+  database: "database",
   sprint: "calendar",
   release: "tag",
 };
@@ -26,7 +27,7 @@ const STATUS_BADGE: Record<string, string> = {
   "in-progress": "◑",
   todo: "○",
   done: "✓",
-  closed: "✗",
+  blocked: "⊘",
   proposed: "?",
   accepted: "✓",
   deprecated: "↓",
@@ -203,6 +204,7 @@ export class SpecTreeDataProvider implements vscode.TreeDataProvider<AnyTreeItem
             new TreeGroupItem("adr", "Architectural Decisions", "history"),
             new TreeGroupItem("arch", "Architecture Design", "layout"),
             new TreeGroupItem("spec", "Technical Specs", "file-code"),
+            new TreeGroupItem("database", "Database", "database"),
           ];
         case "fr":
           return this.items
@@ -234,7 +236,17 @@ export class SpecTreeDataProvider implements vscode.TreeDataProvider<AnyTreeItem
             );
         case "spec":
           return this.items
-            .filter((i) => i.data.type === "tech-spec")
+            .filter(
+              (i) =>
+                i.data.type === "tech-spec" && !i.data.id.startsWith("DB-"),
+            )
+            .sort((a, b) => a.data.id.localeCompare(b.data.id))
+            .map(
+              (i) => new SpecTreeItem(i, vscode.TreeItemCollapsibleState.None),
+            );
+        case "database":
+          return this.items
+            .filter((i) => i.data.type === "db-table")
             .sort((a, b) => a.data.id.localeCompare(b.data.id))
             .map(
               (i) => new SpecTreeItem(i, vscode.TreeItemCollapsibleState.None),

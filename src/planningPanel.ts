@@ -322,6 +322,166 @@ const STYLES = /* css */ `
     padding: 1px 5px;
     font-size: 11px;
   }
+
+  /* ── Database ── */
+  .db-root {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+  }
+
+  .db-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 16px;
+    border-bottom: 1px solid var(--vscode-panel-border);
+    background: var(--vscode-editor-background);
+    flex-shrink: 0;
+  }
+
+  .db-toolbar-title {
+    font-size: 12px;
+    font-weight: 600;
+    opacity: 0.8;
+  }
+
+  .db-btn {
+    background: var(--vscode-button-background);
+    color: var(--vscode-button-foreground);
+    border: none;
+    border-radius: 4px;
+    padding: 4px 10px;
+    font-size: 11px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .db-btn:hover {
+    background: var(--vscode-button-hoverBackground);
+  }
+
+  .db-canvas {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    cursor: grab;
+    background: var(--vscode-editor-background);
+  }
+  .db-canvas:active {
+    cursor: grabbing;
+  }
+
+  .db-node {
+    background: var(--vscode-editor-widget-background, var(--vscode-editor-background));
+    border: 1px solid var(--vscode-panel-border);
+    border-radius: 6px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    user-select: none;
+    cursor: grab;
+  }
+  .db-node:active {
+    cursor: grabbing;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.35);
+  }
+
+  .db-node-header {
+    display: flex;
+    align-items: center;
+    padding: 0 8px;
+    height: 36px;
+    background: var(--vscode-tab-activeBackground);
+    border-bottom: 1px solid var(--vscode-panel-border);
+    gap: 6px;
+  }
+
+  .db-node-name {
+    flex: 1;
+    font-size: 11px;
+    font-weight: 700;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    cursor: pointer;
+    color: var(--vscode-textLink-foreground);
+  }
+  .db-node-name:hover {
+    text-decoration: underline;
+  }
+
+  .db-node-del {
+    background: none;
+    border: none;
+    color: var(--vscode-foreground);
+    opacity: 0.4;
+    font-size: 14px;
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+    flex-shrink: 0;
+  }
+  .db-node-del:hover {
+    opacity: 1;
+    color: var(--vscode-errorForeground);
+  }
+
+  .db-node-cols {
+    padding: 4px 0 4px 0;
+  }
+
+  .db-col-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 0 8px;
+    height: 22px;
+    font-size: 10px;
+    border-bottom: 1px solid var(--vscode-panel-border);
+  }
+  .db-col-row:last-child {
+    border-bottom: none;
+  }
+
+  .db-col-icon {
+    font-size: 9px;
+    flex-shrink: 0;
+    width: 14px;
+    text-align: center;
+  }
+
+  .db-col-name {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--vscode-foreground);
+  }
+
+  .db-col-type {
+    font-size: 9px;
+    opacity: 0.55;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 80px;
+  }
+
+  .db-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    gap: 12px;
+    opacity: 0.7;
+    font-size: 13px;
+  }
+
+  .db-empty-icon {
+    font-size: 40px;
+    opacity: 0.5;
+  }
 `;
 
 // ---------------------------------------------------------------------------
@@ -343,12 +503,16 @@ export class PlanningPanel {
     patch: Record<string, string>,
   ) => void;
 
+  // Callback for deleting a file (e.g. a db-table)
+  private readonly _onDelete: (filePath: string) => void;
+
   // ---------------------------------------------------------------------------
 
   static createOrShow(
     context: vscode.ExtensionContext,
     items: SpecItem[],
     onPatch: (filePath: string, patch: Record<string, string>) => void,
+    onDelete: (filePath: string) => void,
   ): void {
     const column = vscode.ViewColumn.One;
 
@@ -374,6 +538,7 @@ export class PlanningPanel {
       context.extensionUri,
       items,
       onPatch,
+      onDelete,
     );
   }
 
@@ -388,11 +553,13 @@ export class PlanningPanel {
     extensionUri: vscode.Uri,
     items: SpecItem[],
     onPatch: (filePath: string, patch: Record<string, string>) => void,
+    onDelete: (filePath: string) => void,
   ) {
     this._panel = panel;
     this._extensionUri = extensionUri;
     this._items = items;
     this._onPatch = onPatch;
+    this._onDelete = onDelete;
 
     this._panel.iconPath = new vscode.ThemeIcon("project");
     this._panel.webview.options = {
@@ -437,6 +604,10 @@ export class PlanningPanel {
           this._onPatch(msg.filePath, { sprintId: msg.sprintId ?? "" });
         } else if (msg.type === "updateRelease" && msg.filePath) {
           this._onPatch(msg.filePath, { releaseId: msg.releaseId ?? "" });
+        } else if (msg.type === "createTable") {
+          vscode.commands.executeCommand("project-spec.newTable");
+        } else if (msg.type === "deleteTable" && msg.filePath) {
+          this._onDelete(msg.filePath);
         }
       },
       null,
@@ -470,6 +641,9 @@ export class PlanningPanel {
       dueDate: i.data.dueDate,
       releaseDate: i.data.releaseDate,
       filePath: i.filePath,
+      ...(i.data.type === "db-table"
+        ? { body: i.body, relations: i.data.relations }
+        : {}),
     }));
     this._panel.webview.postMessage({ type: "update", items: data });
   }

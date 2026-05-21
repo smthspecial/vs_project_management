@@ -63,6 +63,7 @@ export function parseFrontMatter(content: string): {
     startDate: raw["startDate"],
     dueDate: raw["dueDate"],
     releaseDate: raw["releaseDate"],
+    relations: raw["relations"],
     priority: raw["priority"] as ItemPriority | undefined,
   };
 
@@ -107,6 +108,9 @@ export function buildFrontMatter(data: SpecFrontMatter): string {
   if (data.releaseDate) {
     lines.push(`releaseDate: ${data.releaseDate}`);
   }
+  if (data.relations) {
+    lines.push(`relations: ${data.relations}`);
+  }
   if (data.priority) {
     lines.push(`priority: ${data.priority}`);
   }
@@ -128,13 +132,14 @@ export function getTypeDir(rootPath: string, type: ItemType): string {
   const subdirMap: Partial<Record<ItemType, string>> = {
     fr: "requirements/fr",
     nfr: "requirements/nfr",
-    epic: "planning/epics",
-    story: "planning/stories",
-    task: "planning/tasks",
-    bug: "planning/tasks",
+    epic: "backlog/epics",
+    story: "backlog/stories",
+    task: "backlog/tasks",
+    bug: "backlog/tasks",
     adr: "technical/adr",
     arch: "technical/architecture",
     "tech-spec": "technical/specs",
+    "db-table": "technical/database",
     sprint: "planning/sprints",
     release: "planning/releases",
   };
@@ -168,14 +173,15 @@ export function readAllSpecItems(rootPath: string): SpecItem[] {
   for (const subdir of [
     "requirements/fr",
     "requirements/nfr",
-    "planning/epics",
-    "planning/stories",
-    "planning/tasks",
+    "backlog/epics",
+    "backlog/stories",
+    "backlog/tasks",
     "planning/sprints",
     "planning/releases",
     "technical/adr",
     "technical/architecture",
     "technical/specs",
+    "technical/database",
   ]) {
     const dirPath = path.join(specDir, subdir);
     if (!fs.existsSync(dirPath)) {
@@ -220,7 +226,9 @@ export function generateId(items: SpecItem[], type: ItemType): string {
                       ? "SPR"
                       : type === "release"
                         ? "REL"
-                        : "SPEC";
+                        : type === "db-table"
+                          ? "TBL"
+                          : "SPEC";
 
   const existing = items
     .filter((i) => i.data.type === type)

@@ -21,13 +21,6 @@
           "title": "Project Spec",
           "icon": "resources/spec.svg"
         }
-      ],
-      "panel": [
-        {
-          "id": "projectSpecPanel",
-          "title": "Project Spec",
-          "icon": "resources/spec.svg"
-        }
       ]
     },
     "views": {
@@ -36,14 +29,6 @@
           "id": "projectSpecTree",
           "name": "Specifications",
           "contextualTitle": "Project Spec"
-        }
-      ],
-      "projectSpecPanel": [
-        {
-          "id": "projectSpecKanban",
-          "name": "Kanban",
-          "type": "webview",
-          "contextualTitle": "Project Spec Kanban"
         }
       ]
     },
@@ -167,6 +152,12 @@
         "title": "Add to Release…",
         "icon": "$(tag)",
         "category": "Project Spec"
+      },
+      {
+        "command": "project-spec.newTable",
+        "title": "New Table",
+        "icon": "$(add)",
+        "category": "Project Spec"
       }
     ],
     "menus": {
@@ -280,8 +271,13 @@
         },
         {
           "command": "project-spec.deleteItem",
-          "when": "view == projectSpecTree && viewItem =~ /^(epic|story|task|bug|fr|nfr|adr|arch|tech-spec|sprint|release)$/",
+          "when": "view == projectSpecTree && viewItem =~ /^(epic|story|task|bug|fr|nfr|adr|arch|tech-spec|sprint|release|db-table)$/",
           "group": "9_delete@1"
+        },
+        {
+          "command": "project-spec.newTable",
+          "when": "view == projectSpecTree && viewItem == group-database",
+          "group": "inline@1"
         }
       ]
     }

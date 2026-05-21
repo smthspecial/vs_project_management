@@ -21,6 +21,7 @@ const WEEK_HEIGHT = 32;
 const ARROW_COLOR = "var(--vscode-editorInfo-foreground)";
 
 const TYPE_COLORS: Record<string, string> = {
+  sprint: "#0d9488",
   epic: "#7c3aed",
   story: "#2563eb",
   task: "#16a34a",
@@ -103,10 +104,13 @@ export function TimelineView({ items }: TimelineViewProps): React.ReactElement {
   }, [items]);
 
   const timelineItems: TimelineItem[] = useMemo(() => {
-    const plannable = localItems.filter(
+    const sprints = localItems.filter(
+      (i) => i.type === "sprint" && i.startDate && i.dueDate,
+    );
+    const stories = localItems.filter(
       (i) => i.type === "story" && i.startDate && i.dueDate,
     );
-    return plannable.map((item, idx) => ({
+    return [...sprints, ...stories].map((item, idx) => ({
       item,
       start: parseDate(item.startDate!),
       end: parseDate(item.dueDate!),
@@ -203,15 +207,17 @@ export function TimelineView({ items }: TimelineViewProps): React.ReactElement {
   // x coordinate of drag-over indicator (null = not dragging)
   const [dropIndicatorX, setDropIndicatorX] = useState<number | null>(null);
 
-  // Scroll to today on mount
+  // Scroll to today once — only on initial items load, never during drag
+  const hasScrolledRef = useRef(false);
   useEffect(() => {
-    if (scrollRef.current) {
-      const today = new Date();
-      const offsetDays = daysBetween(minDate, today);
-      const targetScroll = offsetDays * DAY_WIDTH - 200;
-      scrollRef.current.scrollLeft = Math.max(0, targetScroll);
-    }
-  }, [minDate]);
+    if (hasScrolledRef.current) return;
+    if (!scrollRef.current || timelineItems.length === 0) return;
+    hasScrolledRef.current = true;
+    const today = new Date();
+    const offsetDays = daysBetween(minDate, today);
+    const targetScroll = offsetDays * DAY_WIDTH - 200;
+    scrollRef.current.scrollLeft = Math.max(0, targetScroll);
+  }, [minDate, timelineItems.length]);
 
   // ---------------------------------------------------------------------------
   // Header (months + weeks)
@@ -683,6 +689,24 @@ export function TimelineView({ items }: TimelineViewProps): React.ReactElement {
                   {spr.item.title}
                 </text>
               </g>
+            );
+          })}
+
+          {/* Weekend column backgrounds */}
+          {Array.from({ length: totalDays }).map((_, dayIdx) => {
+            const d = addDays(minDate, dayIdx);
+            const dow = d.getDay();
+            if (dow !== 0 && dow !== 6) return null;
+            return (
+              <rect
+                key={`wk-${dayIdx}`}
+                x={dayIdx * DAY_WIDTH}
+                y={HEADER_HEIGHT}
+                width={DAY_WIDTH}
+                height={svgHeight - HEADER_HEIGHT}
+                fill="var(--vscode-panel-border)"
+                opacity={0.15}
+              />
             );
           })}
 

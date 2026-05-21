@@ -3,7 +3,7 @@ export type ItemStatus =
   | "active"
   | "in-progress"
   | "done"
-  | "closed"
+  | "blocked"
   | "todo"
   | "proposed"
   | "accepted"
@@ -24,7 +24,8 @@ export type ItemType =
   | "arch"
   | "tech-spec"
   | "sprint"
-  | "release";
+  | "release"
+  | "db-table";
 
 export interface SpecFrontMatter {
   id: string;
@@ -50,6 +51,8 @@ export interface SpecFrontMatter {
   dueDate?: string;
   /** Release date (for releases) — ISO YYYY-MM-DD */
   releaseDate?: string;
+  /** FK relations for db-table — comma-separated colName:tableId pairs */
+  relations?: string;
   priority?: ItemPriority;
 }
 
@@ -64,8 +67,8 @@ export const STORY_STATUSES: ItemStatus[] = ["draft", "active", "done"];
 export const TASK_STATUSES: ItemStatus[] = [
   "todo",
   "in-progress",
+  "blocked",
   "done",
-  "closed",
 ];
 export const FR_NFR_STATUSES: ItemStatus[] = ["draft", "active", "done"];
 export const ADR_STATUSES: ItemStatus[] = [

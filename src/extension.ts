@@ -1,8 +1,9 @@
 import * as vscode from "vscode";
+import * as fs from "fs";
 import { SpecTreeDataProvider } from "./specTree";
 import { registerCommands } from "./commands";
 import { SpecCodeLensProvider } from "./codeLens";
-import { KanbanViewProvider } from "./kanban";
+import { SpecDefinitionProvider } from "./definitionProvider";
 import { PlanningPanel, patchFrontMatter } from "./planningPanel";
 
 export function activate(context: vscode.ExtensionContext): void {
@@ -23,21 +24,11 @@ export function activate(context: vscode.ExtensionContext): void {
   // Commands — always register so they work from the command palette
   registerCommands(context, provider, getRootPath);
 
-  // Kanban board — embedded panel view
-  const kanbanProvider = new KanbanViewProvider();
-  context.subscriptions.push(
-    vscode.window.registerWebviewViewProvider(
-      KanbanViewProvider.viewType,
-      kanbanProvider,
-    ),
-  );
-
-  // Sync context key, kanban and planning panel whenever tree data changes
+  // Sync context key and planning panel whenever tree data changes
   const syncState = (): void => {
     const items = provider.getAllItems();
     const hasSrs = items.some((i) => i.data.type === "epic");
     vscode.commands.executeCommand("setContext", "projectSpec.hasEpic", hasSrs);
-    kanbanProvider.update(items);
     PlanningPanel.update(items);
   };
 
@@ -49,6 +40,12 @@ export function activate(context: vscode.ExtensionContext): void {
         provider.getAllItems(),
         (filePath, patch) => {
           patchFrontMatter(filePath, patch);
+          provider.refresh();
+        },
+        (filePath) => {
+          try {
+            fs.unlinkSync(filePath);
+          } catch {}
           provider.refresh();
         },
       );
@@ -63,6 +60,14 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.languages.registerCodeLensProvider(
       { language: "markdown", pattern: "**/.spec/**/*.md" },
       new SpecCodeLensProvider(() => provider.getAllItems()),
+    ),
+  );
+
+  // Ctrl+click navigation for item IDs (EPIC-001, US-003, etc.)
+  context.subscriptions.push(
+    vscode.languages.registerDefinitionProvider(
+      { language: "markdown", pattern: "**/.spec/**/*.md" },
+      new SpecDefinitionProvider(() => provider.getAllItems()),
     ),
   );
 

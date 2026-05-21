@@ -1,1 +1,0 @@
-add sprints and releases management

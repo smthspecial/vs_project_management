@@ -9,7 +9,7 @@ const COLUMNS: { id: string; label: string }[] = [
   { id: "todo", label: "To Do" },
   { id: "in-progress", label: "In Progress" },
   { id: "done", label: "Done" },
-  { id: "closed", label: "Closed" },
+  { id: "blocked", label: "Blocked" },
 ];
 
 const PRIORITY_ICON: Record<string, string> = {

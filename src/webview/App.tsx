@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { BoardView } from "./BoardView";
 import { TimelineView } from "./TimelineView";
 import { DependenciesView } from "./DependenciesView";
+import { DatabaseView } from "./DatabaseView";
 import { ItemData, View, ExtensionMessage } from "./types";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -46,12 +47,19 @@ export function App(): React.ReactElement {
           >
             ⛓ Dependencies
           </button>
+          <button
+            className={`tab${view === "database" ? " active" : ""}`}
+            onClick={() => setView("database")}
+          >
+            🗄 Database
+          </button>
         </div>
       </div>
       <div className="content">
         {view === "board" && <BoardView items={items} />}
         {view === "timeline" && <TimelineView items={items} />}
         {view === "dependencies" && <DependenciesView items={items} />}
+        {view === "database" && <DatabaseView items={items} />}
       </div>
     </div>
   );

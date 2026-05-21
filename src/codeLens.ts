@@ -47,23 +47,15 @@ export class SpecCodeLensProvider implements vscode.CodeLensProvider {
       const stories = items.filter(
         (i) => i.data.type === "story" && i.data.epicId === data.id,
       );
+      const done = stories.filter((s) => s.data.status === "done").length;
       lenses.push(
         new vscode.CodeLens(range, {
-          title: `$(person) ${stories.length} ${stories.length === 1 ? "story" : "stories"}`,
-          command: "project-spec.refresh",
-          tooltip: "Stories linked to this epic",
+          title: `$(person) ${stories.length} ${stories.length === 1 ? "story" : "stories"}  $(check) ${done}/${stories.length} done`,
+          command: "project-spec.showContents",
+          arguments: [data.id, "epic"],
+          tooltip: "Show all stories in this epic",
         }),
       );
-      if (stories.length > 0) {
-        const done = stories.filter((s) => s.data.status === "done").length;
-        lenses.push(
-          new vscode.CodeLens(range, {
-            title: `$(check) ${done}/${stories.length} done`,
-            command: "project-spec.refresh",
-            tooltip: "Completion status of linked stories",
-          }),
-        );
-      }
     }
 
     if (data.type === "story") {
@@ -73,22 +65,26 @@ export class SpecCodeLensProvider implements vscode.CodeLensProvider {
       const bugs = items.filter(
         (i) => i.data.type === "bug" && i.data.storyId === data.id,
       );
+      const total = tasks.length + bugs.length;
 
-      if (tasks.length > 0) {
+      if (total > 0) {
+        const parts: string[] = [];
+        if (tasks.length > 0) {
+          parts.push(
+            `$(checklist) ${tasks.length} ${tasks.length === 1 ? "task" : "tasks"}`,
+          );
+        }
+        if (bugs.length > 0) {
+          parts.push(
+            `$(bug) ${bugs.length} ${bugs.length === 1 ? "bug" : "bugs"}`,
+          );
+        }
         lenses.push(
           new vscode.CodeLens(range, {
-            title: `$(checklist) ${tasks.length} ${tasks.length === 1 ? "task" : "tasks"}`,
-            command: "project-spec.refresh",
-            tooltip: "Tasks linked to this story",
-          }),
-        );
-      }
-      if (bugs.length > 0) {
-        lenses.push(
-          new vscode.CodeLens(range, {
-            title: `$(bug) ${bugs.length} ${bugs.length === 1 ? "bug" : "bugs"}`,
-            command: "project-spec.refresh",
-            tooltip: "Bugs linked to this story",
+            title: parts.join("  "),
+            command: "project-spec.showContents",
+            arguments: [data.id, "story"],
+            tooltip: "Show all tasks and bugs for this story",
           }),
         );
       }
@@ -135,6 +131,48 @@ export class SpecCodeLensProvider implements vscode.CodeLensProvider {
           }
         }
       }
+    }
+
+    if (data.type === "sprint") {
+      const stories = items.filter(
+        (i) => i.data.type === "story" && i.data.sprintId === data.id,
+      );
+      const allTasks = items.filter(
+        (i) =>
+          (i.data.type === "task" || i.data.type === "bug") &&
+          i.data.sprintId === data.id,
+      );
+      const taskCount = allTasks.filter((t) => t.data.type === "task").length;
+      const bugCount = allTasks.filter((t) => t.data.type === "bug").length;
+      lenses.push(
+        new vscode.CodeLens(range, {
+          title: `$(calendar) ${stories.length} ${stories.length === 1 ? "story" : "stories"}  $(checklist) ${taskCount} tasks  $(bug) ${bugCount} bugs`,
+          command: "project-spec.showContents",
+          arguments: [data.id, "sprint"],
+          tooltip: "Show all stories and tasks in this sprint",
+        }),
+      );
+    }
+
+    if (data.type === "release") {
+      const stories = items.filter(
+        (i) => i.data.type === "story" && i.data.releaseId === data.id,
+      );
+      const allTasks = items.filter(
+        (i) =>
+          (i.data.type === "task" || i.data.type === "bug") &&
+          i.data.releaseId === data.id,
+      );
+      const taskCount = allTasks.filter((t) => t.data.type === "task").length;
+      const bugCount = allTasks.filter((t) => t.data.type === "bug").length;
+      lenses.push(
+        new vscode.CodeLens(range, {
+          title: `$(tag) ${stories.length} ${stories.length === 1 ? "story" : "stories"}  $(checklist) ${taskCount} tasks  $(bug) ${bugCount} bugs`,
+          command: "project-spec.showContents",
+          arguments: [data.id, "release"],
+          tooltip: "Show all stories and tasks in this release",
+        }),
+      );
     }
 
     return lenses;

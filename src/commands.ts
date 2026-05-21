@@ -9,6 +9,7 @@ import {
   getSpecDir,
   getTypeDir,
 } from "./specParser";
+import { SpecItem } from "./models";
 import {
   ItemStatus,
   ItemPriority,
@@ -269,7 +270,10 @@ async function createTaskOrBug(
   await openFile(filePath);
 }
 
-async function changeStatus(node?: SpecTreeItem): Promise<void> {
+async function changeStatus(
+  provider: SpecTreeDataProvider,
+  node?: SpecTreeItem,
+): Promise<void> {
   if (!node?.spec) {
     return;
   }
@@ -320,6 +324,14 @@ async function changeStatus(node?: SpecTreeItem): Promise<void> {
       updated,
     );
     await vscode.workspace.applyEdit(edit);
+  }
+
+  // Re-read from disk so rollup sees the newly written status
+  provider.refresh();
+  const freshItems = provider.getAllItems();
+  const didRollup = rollupStatus(node.spec.data, newStatus, freshItems);
+  if (didRollup) {
+    provider.refresh();
   }
 }
 
@@ -821,6 +833,307 @@ async function addDependency(
 }
 
 // ---------------------------------------------------------------------------
+// Database tables
+// ---------------------------------------------------------------------------
+
+async function createTable(
+  provider: SpecTreeDataProvider,
+  getRootPath: () => string | undefined,
+): Promise<void> {
+  const rootPath = await requireRootPath(getRootPath);
+  if (!rootPath) {
+    return;
+  }
+
+  const title = await vscode.window.showInputBox({
+    prompt: "Table name (snake_case)",
+    placeHolder: "e.g. order_items",
+    validateInput: (v) => (v.trim() ? null : "Table name cannot be empty"),
+  });
+  if (!title) {
+    return;
+  }
+
+  const id = generateId(provider.getAllItems(), "db-table");
+  const dir = getTypeDir(rootPath, "db-table");
+  ensureDir(dir);
+  const slug = id.toLowerCase().replace("-", "");
+  const filePath = path.join(dir, `${slug}.md`);
+
+  const frontMatter = buildFrontMatter({
+    id,
+    type: "db-table",
+    title: title.trim(),
+    status: "active" as ItemStatus,
+    created: today(),
+  });
+
+  const body =
+    `## Description\n\n${title.trim()} table.\n\n` +
+    `## Columns\n\n` +
+    `| Column | Type | Constraints |\n` +
+    `|--------|------|-------------|\n` +
+    `| id | uuid | PK |\n`;
+
+  fs.writeFileSync(filePath, frontMatter + body, "utf-8");
+  provider.refresh();
+  await openFile(filePath);
+}
+
+// ---------------------------------------------------------------------------
+// Sprint / Release contents
+// ---------------------------------------------------------------------------
+
+interface ContentsQuickPickItem extends vscode.QuickPickItem {
+  filePath?: string;
+}
+
+export async function showContents(
+  id: string,
+  kind: "sprint" | "release" | "epic" | "story",
+  items: SpecItem[],
+): Promise<void> {
+  // --- epic: show stories with their children ---
+  if (kind === "epic") {
+    const stories = items
+      .filter((i) => i.data.type === "story" && i.data.epicId === id)
+      .sort((a, b) => a.data.id.localeCompare(b.data.id));
+    const epicTasks = items.filter(
+      (i) =>
+        (i.data.type === "task" || i.data.type === "bug") &&
+        stories.some((s) => s.data.id === i.data.storyId),
+    );
+    if (stories.length === 0) {
+      vscode.window.showInformationMessage(`No stories found for epic ${id}.`);
+      return;
+    }
+    const quickItems: ContentsQuickPickItem[] = [];
+    for (const story of stories) {
+      const children = epicTasks
+        .filter((t) => t.data.storyId === story.data.id)
+        .sort((a, b) => a.data.id.localeCompare(b.data.id));
+      quickItems.push({
+        kind: vscode.QuickPickItemKind.Separator,
+        label: `$(person) ${story.data.id} \u2014 ${story.data.title}  [${story.data.status}]`,
+      });
+      quickItems.push({
+        label: `$(file-text) Open user story`,
+        description: story.data.status,
+        detail: story.data.id,
+        filePath: story.filePath,
+      });
+      for (const child of children) {
+        const icon = child.data.type === "bug" ? "$(bug)" : "$(checklist)";
+        quickItems.push({
+          label: `${icon} ${child.data.id} \u2014 ${child.data.title}`,
+          description: child.data.status,
+          filePath: child.filePath,
+        });
+      }
+    }
+    const picked = await vscode.window.showQuickPick(quickItems, {
+      placeHolder: `Stories in epic ${id} \u2014 select to open file`,
+      matchOnDescription: true,
+      matchOnDetail: true,
+    });
+    if (picked?.filePath) {
+      await vscode.window.showTextDocument(vscode.Uri.file(picked.filePath));
+    }
+    return;
+  }
+
+  // --- story: show tasks and bugs ---
+  if (kind === "story") {
+    const children = items
+      .filter(
+        (i) =>
+          (i.data.type === "task" || i.data.type === "bug") &&
+          i.data.storyId === id,
+      )
+      .sort((a, b) => a.data.id.localeCompare(b.data.id));
+    if (children.length === 0) {
+      vscode.window.showInformationMessage(
+        `No tasks or bugs found for story ${id}.`,
+      );
+      return;
+    }
+    const quickItems: ContentsQuickPickItem[] = children.map((c) => {
+      const icon = c.data.type === "bug" ? "$(bug)" : "$(checklist)";
+      return {
+        label: `${icon} ${c.data.id} \u2014 ${c.data.title}`,
+        description: c.data.status,
+        filePath: c.filePath,
+      };
+    });
+    const picked = await vscode.window.showQuickPick(quickItems, {
+      placeHolder: `Tasks & bugs for story ${id} \u2014 select to open file`,
+      matchOnDescription: true,
+    });
+    if (picked?.filePath) {
+      await vscode.window.showTextDocument(vscode.Uri.file(picked.filePath));
+    }
+    return;
+  }
+
+  // --- sprint / release ---
+  const stories = items.filter(
+    (i) =>
+      i.data.type === "story" &&
+      (kind === "sprint" ? i.data.sprintId === id : i.data.releaseId === id),
+  );
+  const allTasks = items.filter(
+    (i) =>
+      (i.data.type === "task" || i.data.type === "bug") &&
+      (kind === "sprint" ? i.data.sprintId === id : i.data.releaseId === id),
+  );
+
+  if (stories.length === 0 && allTasks.length === 0) {
+    vscode.window.showInformationMessage(`No stories found for ${id}.`);
+    return;
+  }
+
+  const quickItems: ContentsQuickPickItem[] = [];
+
+  for (const story of stories.sort((a, b) =>
+    a.data.id.localeCompare(b.data.id),
+  )) {
+    const children = allTasks
+      .filter((t) => t.data.storyId === story.data.id)
+      .sort((a, b) => a.data.id.localeCompare(b.data.id));
+
+    quickItems.push({
+      kind: vscode.QuickPickItemKind.Separator,
+      label: `$(person) ${story.data.id} — ${story.data.title}  [${story.data.status}]`,
+    });
+    quickItems.push({
+      label: `$(file-text) Open user story`,
+      description: story.data.status,
+      detail: story.data.id,
+      filePath: story.filePath,
+    });
+    for (const child of children) {
+      const icon = child.data.type === "bug" ? "$(bug)" : "$(checklist)";
+      quickItems.push({
+        label: `${icon} ${child.data.id} — ${child.data.title}`,
+        description: child.data.status,
+        filePath: child.filePath,
+      });
+    }
+  }
+
+  const orphanTasks = allTasks.filter(
+    (t) => !stories.some((s) => s.data.id === t.data.storyId),
+  );
+  if (orphanTasks.length > 0) {
+    quickItems.push({
+      kind: vscode.QuickPickItemKind.Separator,
+      label: "Unlinked tasks",
+    });
+    for (const t of orphanTasks) {
+      const icon = t.data.type === "bug" ? "$(bug)" : "$(checklist)";
+      quickItems.push({
+        label: `${icon} ${t.data.id} — ${t.data.title}`,
+        description: t.data.status,
+        filePath: t.filePath,
+      });
+    }
+  }
+
+  const picked = await vscode.window.showQuickPick(quickItems, {
+    placeHolder: `Contents of ${id} — select to open file`,
+    matchOnDescription: true,
+    matchOnDetail: true,
+  });
+
+  if (picked?.filePath) {
+    await vscode.window.showTextDocument(vscode.Uri.file(picked.filePath));
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Status rollup helpers
+// ---------------------------------------------------------------------------
+
+function writeStatusToFile(filePath: string, newStatus: ItemStatus): void {
+  const content = fs.readFileSync(filePath, "utf-8");
+  const updated = content.replace(/^status: .+$/m, `status: ${newStatus}`);
+  fs.writeFileSync(filePath, updated, "utf-8");
+}
+
+function rollupStatus(
+  data: { type: string; storyId?: string; epicId?: string; id: string },
+  newStatus: ItemStatus,
+  freshItems: SpecItem[],
+): boolean {
+  let changed = false;
+
+  // task/bug → parent story
+  if (
+    (data.type === "task" || data.type === "bug") &&
+    data.storyId &&
+    newStatus === "done"
+  ) {
+    const siblings = freshItems.filter(
+      (i) =>
+        (i.data.type === "task" || i.data.type === "bug") &&
+        i.data.storyId === data.storyId,
+    );
+    if (
+      siblings.length > 0 &&
+      siblings.every((i) => i.data.status === "done")
+    ) {
+      const story = freshItems.find(
+        (i) => i.data.type === "story" && i.data.id === data.storyId,
+      );
+      if (story && story.data.status !== "done") {
+        writeStatusToFile(story.filePath, "done");
+        changed = true;
+        // chain: check if story's epic should also roll up
+        if (story.data.epicId) {
+          changed =
+            checkEpicRollup(story.data.epicId, story.data.id, freshItems) ||
+            changed;
+        }
+      }
+    }
+  }
+
+  // story → parent epic
+  if (data.type === "story" && data.epicId && newStatus === "done") {
+    changed = checkEpicRollup(data.epicId, data.id, freshItems) || changed;
+  }
+
+  return changed;
+}
+
+function checkEpicRollup(
+  epicId: string,
+  justDoneStoryId: string,
+  freshItems: SpecItem[],
+): boolean {
+  const siblings = freshItems.filter(
+    (i) => i.data.type === "story" && i.data.epicId === epicId,
+  );
+  if (siblings.length === 0) {
+    return false;
+  }
+  const allDone = siblings.every(
+    (i) => i.data.status === "done" || i.data.id === justDoneStoryId,
+  );
+  if (!allDone) {
+    return false;
+  }
+  const epic = freshItems.find(
+    (i) => i.data.type === "epic" && i.data.id === epicId,
+  );
+  if (!epic || epic.data.status === "done") {
+    return false;
+  }
+  writeStatusToFile(epic.filePath, "done");
+  return true;
+}
+
+// ---------------------------------------------------------------------------
 // Registration
 // ---------------------------------------------------------------------------
 
@@ -862,7 +1175,7 @@ export function registerCommands(
 
     vscode.commands.registerCommand(
       "project-spec.changeStatus",
-      (node?: SpecTreeItem) => changeStatus(node),
+      (node?: SpecTreeItem) => changeStatus(provider, node),
     ),
 
     vscode.commands.registerCommand(
@@ -911,6 +1224,16 @@ export function registerCommands(
     vscode.commands.registerCommand(
       "project-spec.addToRelease",
       (node?: SpecTreeItem) => addToRelease(provider, node),
+    ),
+
+    vscode.commands.registerCommand("project-spec.newTable", () =>
+      createTable(provider, getRootPath),
+    ),
+
+    vscode.commands.registerCommand(
+      "project-spec.showContents",
+      (id: string, kind: "sprint" | "release") =>
+        showContents(id, kind, provider.getAllItems()),
     ),
   );
 }
