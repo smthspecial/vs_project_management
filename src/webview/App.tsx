@@ -18,6 +18,8 @@ export function App(): React.ReactElement {
     const handler = (event: MessageEvent<ExtensionMessage>) => {
       if (event.data.type === "update") {
         setItems(event.data.items);
+      } else if (event.data.type === "setView") {
+        setView(event.data.view);
       }
     };
     window.addEventListener("message", handler);

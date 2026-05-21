@@ -24,7 +24,9 @@ export interface ItemData {
 export type View = "board" | "timeline" | "dependencies" | "database";
 
 // Messages extension → webview
-export type ExtensionMessage = { type: "update"; items: ItemData[] };
+export type ExtensionMessage =
+  | { type: "update"; items: ItemData[] }
+  | { type: "setView"; view: View };
 
 // Messages webview → extension
 export type WebviewMessage =

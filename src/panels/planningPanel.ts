@@ -15,6 +15,7 @@ export class PlanningPanel {
   private _items: SpecItem[] = [];
   private readonly _extensionUri: vscode.Uri;
   private readonly _disposables: vscode.Disposable[] = [];
+  private _initialView: string | undefined;
 
   // Callback for persisting changes back to markdown files
   private readonly _onPatch: (
@@ -32,12 +33,19 @@ export class PlanningPanel {
     items: SpecItem[],
     onPatch: (filePath: string, patch: Record<string, string>) => void,
     onDelete: (filePath: string) => void,
+    initialView?: string,
   ): void {
     const column = vscode.ViewColumn.One;
 
     if (PlanningPanel._instance) {
       PlanningPanel._instance._panel.reveal(column);
       PlanningPanel._instance.update(items);
+      if (initialView) {
+        PlanningPanel._instance._panel.webview.postMessage({
+          type: "setView",
+          view: initialView,
+        });
+      }
       return;
     }
 
@@ -58,6 +66,7 @@ export class PlanningPanel {
       items,
       onPatch,
       onDelete,
+      initialView,
     );
   }
 
@@ -73,10 +82,12 @@ export class PlanningPanel {
     items: SpecItem[],
     onPatch: (filePath: string, patch: Record<string, string>) => void,
     onDelete: (filePath: string) => void,
+    initialView?: string,
   ) {
     this._panel = panel;
     this._extensionUri = extensionUri;
     this._items = items;
+    this._initialView = initialView;
     this._onPatch = onPatch;
     this._onDelete = onDelete;
 
@@ -141,7 +152,15 @@ export class PlanningPanel {
     this._panel.onDidDispose(() => this._dispose(), null, this._disposables);
 
     // Push items after initial render
-    setTimeout(() => this._postItems(), 100);
+    setTimeout(() => {
+      this._postItems();
+      if (this._initialView) {
+        this._panel.webview.postMessage({
+          type: "setView",
+          view: this._initialView,
+        });
+      }
+    }, 100);
   }
 
   update(items: SpecItem[]): void {

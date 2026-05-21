@@ -89,24 +89,44 @@ export function activate(context: vscode.ExtensionContext): void {
     PlanningPanel.update(items);
   };
 
-  // Open Planning panel command
+  // Open Planning panel commands (view-specific)
+  const makeOpenHandler = (view: string) => () => {
+    PlanningPanel.createOrShow(
+      context,
+      provider.getAllItems(),
+      (filePath, patch) => {
+        patchFrontMatter(filePath, patch);
+        provider.refresh();
+      },
+      (filePath) => {
+        try {
+          fs.unlinkSync(filePath);
+        } catch (err) {
+          vscode.window.showErrorMessage(
+            `Failed to delete file: ${
+              err instanceof Error ? err.message : String(err)
+            }`,
+          );
+        }
+        provider.refresh();
+      },
+      view,
+    );
+  };
+
   context.subscriptions.push(
-    vscode.commands.registerCommand("project-spec.openPlanning", () => {
-      PlanningPanel.createOrShow(
-        context,
-        provider.getAllItems(),
-        (filePath, patch) => {
-          patchFrontMatter(filePath, patch);
-          provider.refresh();
-        },
-        (filePath) => {
-          try {
-            fs.unlinkSync(filePath);
-          } catch {}
-          provider.refresh();
-        },
-      );
-    }),
+    vscode.commands.registerCommand(
+      "project-spec.openBoard",
+      makeOpenHandler("board"),
+    ),
+    vscode.commands.registerCommand(
+      "project-spec.openTimeline",
+      makeOpenHandler("timeline"),
+    ),
+    vscode.commands.registerCommand(
+      "project-spec.openDatabase",
+      makeOpenHandler("database"),
+    ),
   );
 
   context.subscriptions.push(provider.onDidChangeTreeData(() => syncState()));

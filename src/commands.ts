@@ -311,7 +311,9 @@ async function changeStatus(
 
   const newStatus = pick.label as ItemStatus;
   const content = fs.readFileSync(node.spec.filePath, "utf-8");
-  const updated = content.replace(/^status: .+$/m, `status: ${newStatus}`);
+  const { data: fmData, body: fmBody } = parseFrontMatter(content);
+  fmData.status = newStatus;
+  const updated = buildFrontMatter(fmData as SpecFrontMatter) + fmBody;
   fs.writeFileSync(node.spec.filePath, updated, "utf-8");
 
   // Refresh the open editor if it's showing this file
@@ -819,18 +821,17 @@ async function addDependency(
 
   const newDeps = picks.map((p) => p.label).join(",");
   const content = fs.readFileSync(node.spec.filePath, "utf-8");
-
-  let updated: string;
-  if (/^dependsOn: .+$/m.test(content)) {
-    updated = content.replace(/^dependsOn: .+$/m, `dependsOn: ${newDeps}`);
-  } else if (newDeps) {
-    // Insert after the status line
-    updated = content.replace(/^(status: .+)$/m, `$1\ndependsOn: ${newDeps}`);
+  const { data: depData, body: depBody } = parseFrontMatter(content);
+  if (newDeps) {
+    depData.dependsOn = newDeps;
   } else {
-    return;
+    delete depData.dependsOn;
   }
-
-  fs.writeFileSync(node.spec.filePath, updated, "utf-8");
+  fs.writeFileSync(
+    node.spec.filePath,
+    buildFrontMatter(depData as SpecFrontMatter) + depBody,
+    "utf-8",
+  );
   provider.refresh();
 }
 
@@ -1058,8 +1059,13 @@ export async function showContents(
 
 function writeStatusToFile(filePath: string, newStatus: ItemStatus): void {
   const content = fs.readFileSync(filePath, "utf-8");
-  const updated = content.replace(/^status: .+$/m, `status: ${newStatus}`);
-  fs.writeFileSync(filePath, updated, "utf-8");
+  const { data, body } = parseFrontMatter(content);
+  data.status = newStatus;
+  fs.writeFileSync(
+    filePath,
+    buildFrontMatter(data as SpecFrontMatter) + body,
+    "utf-8",
+  );
 }
 
 function rollupStatus(

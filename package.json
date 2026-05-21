@@ -183,13 +183,59 @@
         "title": "New Table",
         "icon": "$(add)",
         "category": "Project Spec"
+      },
+      {
+        "command": "project-spec.openBoard",
+        "title": "Open Board View",
+        "icon": "$(project)",
+        "category": "Project Spec"
+      },
+      {
+        "command": "project-spec.openTimeline",
+        "title": "Open Timeline View",
+        "icon": "$(project)",
+        "category": "Project Spec"
+      },
+      {
+        "command": "project-spec.openDatabase",
+        "title": "Open Database View",
+        "icon": "$(project)",
+        "category": "Project Spec"
       }
     ],
     "menus": {
-      "view/title": [
+      "commandPalette": [
         {
           "command": "project-spec.openPlanning",
-          "when": "view =~ /^projectSpec.*Tree$/",
+          "when": "false"
+        },
+        {
+          "command": "project-spec.openBoard",
+          "when": "false"
+        },
+        {
+          "command": "project-spec.openTimeline",
+          "when": "false"
+        },
+        {
+          "command": "project-spec.openDatabase",
+          "when": "false"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "project-spec.openBoard",
+          "when": "view == projectSpecBacklogTree",
+          "group": "navigation@1"
+        },
+        {
+          "command": "project-spec.openTimeline",
+          "when": "view == projectSpecSprintsTree",
+          "group": "navigation@1"
+        },
+        {
+          "command": "project-spec.openDatabase",
+          "when": "view == projectSpecDatabaseTree",
           "group": "navigation@1"
         },
         {
