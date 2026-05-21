@@ -1,10 +1,15 @@
 import * as vscode from "vscode";
 import * as fs from "fs";
-import { SpecTreeDataProvider } from "./specTree";
+import {
+  SpecTreeDataProvider,
+  SectionTreeAdapter,
+  AnyTreeItem,
+} from "./specTree";
 import { registerCommands } from "./commands";
 import { SpecCodeLensProvider } from "./codeLens";
 import { SpecDefinitionProvider } from "./definitionProvider";
-import { PlanningPanel, patchFrontMatter } from "./planningPanel";
+import { PlanningPanel, patchFrontMatter } from "./panels";
+import { registerSpecTool } from "./specTool";
 
 export function activate(context: vscode.ExtensionContext): void {
   const getRootPath = (): string | undefined =>
@@ -14,15 +19,67 @@ export function activate(context: vscode.ExtensionContext): void {
   const rootPath = getRootPath() ?? "";
   const provider = new SpecTreeDataProvider(rootPath);
 
-  // Tree view — always register so the panel appears
-  const treeView = vscode.window.createTreeView("projectSpecTree", {
-    treeDataProvider: provider,
-    showCollapseAll: true,
+  // Register one side panel per section
+  const sectionDefs: { viewId: string; section: string }[] = [
+    { viewId: "projectSpecRequirementsTree", section: "requirements" },
+    { viewId: "projectSpecBacklogTree", section: "backlog" },
+    { viewId: "projectSpecSprintsTree", section: "sprints-releases" },
+    { viewId: "projectSpecTechnicalTree", section: "technical" },
+    { viewId: "projectSpecDatabaseTree", section: "database" },
+    { viewId: "projectSpecTeamTree", section: "team" },
+  ];
+
+  const adapters: SectionTreeAdapter[] = sectionDefs.map(
+    ({ section }) => new SectionTreeAdapter(provider, section),
+  );
+
+  const treeViews = new Map<string, vscode.TreeView<AnyTreeItem>>();
+
+  sectionDefs.forEach(({ viewId }, i) => {
+    const adapter = adapters[i]!;
+    const treeView = vscode.window.createTreeView(viewId, {
+      treeDataProvider: adapter,
+      showCollapseAll: true,
+    });
+    treeViews.set(viewId, treeView);
+    context.subscriptions.push(treeView);
   });
-  context.subscriptions.push(treeView);
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      "project-spec._revealInTree",
+      async (filePath: string) => {
+        const viewId = provider.findViewIdForFilePath(filePath);
+        const treeItem = provider.findTreeItemForFilePath(filePath);
+        const treeView = viewId ? treeViews.get(viewId) : undefined;
+        if (!treeView || !treeItem) {
+          return;
+        }
+        try {
+          await treeView.reveal(treeItem, {
+            select: true,
+            focus: false,
+            expand: true,
+          });
+        } catch {
+          // item may not be visible yet — ignore
+        }
+      },
+    ),
+  );
+
+  // When data changes, refresh all section panels
+  context.subscriptions.push(
+    provider.onDidChangeTreeData(() => {
+      adapters.forEach((a) => a.fire());
+    }),
+  );
 
   // Commands — always register so they work from the command palette
   registerCommands(context, provider, getRootPath);
+
+  // Register Copilot / AI language model tool
+  registerSpecTool(context, provider);
 
   // Sync context key and planning panel whenever tree data changes
   const syncState = (): void => {

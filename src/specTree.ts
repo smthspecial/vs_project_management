@@ -19,6 +19,9 @@ const TYPE_ICON: Record<string, string> = {
   database: "database",
   sprint: "calendar",
   release: "tag",
+  member: "account",
+  cicd: "settings-gear",
+  "auth-spec": "shield",
 };
 
 const STATUS_BADGE: Record<string, string> = {
@@ -26,6 +29,7 @@ const STATUS_BADGE: Record<string, string> = {
   active: "●",
   "in-progress": "◑",
   todo: "○",
+  testing: "◎",
   done: "✓",
   blocked: "⊘",
   proposed: "?",
@@ -124,136 +128,198 @@ export class SpecTreeDataProvider implements vscode.TreeDataProvider<AnyTreeItem
     return this.items;
   }
 
+  /** Maps a file path to the viewId of the section panel that shows it. */
+  findViewIdForFilePath(filePath: string): string | undefined {
+    const item = this.items.find((i) => i.filePath === filePath);
+    if (!item) {
+      return undefined;
+    }
+    const TYPE_TO_VIEW: Partial<Record<string, string>> = {
+      fr: "projectSpecRequirementsTree",
+      nfr: "projectSpecRequirementsTree",
+      epic: "projectSpecBacklogTree",
+      story: "projectSpecBacklogTree",
+      task: "projectSpecBacklogTree",
+      bug: "projectSpecBacklogTree",
+      sprint: "projectSpecSprintsTree",
+      release: "projectSpecSprintsTree",
+      adr: "projectSpecTechnicalTree",
+      arch: "projectSpecTechnicalTree",
+      "tech-spec": "projectSpecTechnicalTree",
+      cicd: "projectSpecTechnicalTree",
+      "auth-spec": "projectSpecTechnicalTree",
+      "db-table": "projectSpecDatabaseTree",
+      member: "projectSpecTeamTree",
+    };
+    return TYPE_TO_VIEW[item.data.type];
+  }
+
+  /** Returns the SpecTreeItem for a file path, or undefined if not found. */
+  findTreeItemForFilePath(filePath: string): SpecTreeItem | undefined {
+    const item = this.items.find((i) => i.filePath === filePath);
+    if (!item) {
+      return undefined;
+    }
+    return new SpecTreeItem(item, vscode.TreeItemCollapsibleState.None);
+  }
+
   getTreeItem(element: AnyTreeItem): vscode.TreeItem {
     return element;
   }
 
+  /** Returns children for a given group id — used by section panels and group expansion. */
+  getGroupChildren(groupId: string): AnyTreeItem[] {
+    switch (groupId) {
+      case "requirements":
+        return [
+          new TreeGroupItem(
+            "fr",
+            "Functional Requirements",
+            "symbol-interface",
+          ),
+          new TreeGroupItem(
+            "nfr",
+            "Non-Functional Requirements",
+            "symbol-property",
+          ),
+        ];
+      case "backlog":
+        return this.items
+          .filter((i) => i.data.type === "epic")
+          .sort((a, b) => a.data.id.localeCompare(b.data.id))
+          .map((i) => {
+            const hasStories = this.items.some(
+              (s) => s.data.type === "story" && s.data.epicId === i.data.id,
+            );
+            return new SpecTreeItem(
+              i,
+              hasStories
+                ? vscode.TreeItemCollapsibleState.Expanded
+                : vscode.TreeItemCollapsibleState.Collapsed,
+            );
+          });
+      case "sprints-releases":
+        return [
+          new TreeGroupItem("sprints", "Sprints", "calendar"),
+          new TreeGroupItem("releases", "Releases", "tag"),
+        ];
+      case "sprints":
+        return this.items
+          .filter((i) => i.data.type === "sprint")
+          .sort((a, b) => a.data.id.localeCompare(b.data.id))
+          .map((i) => {
+            const hasStories = this.items.some(
+              (s) =>
+                (s.data.type === "story" ||
+                  s.data.type === "task" ||
+                  s.data.type === "bug") &&
+                s.data.sprintId === i.data.id,
+            );
+            return new SpecTreeItem(
+              i,
+              hasStories
+                ? vscode.TreeItemCollapsibleState.Collapsed
+                : vscode.TreeItemCollapsibleState.None,
+            );
+          });
+      case "releases":
+        return this.items
+          .filter((i) => i.data.type === "release")
+          .sort((a, b) => a.data.id.localeCompare(b.data.id))
+          .map(
+            (i) => new SpecTreeItem(i, vscode.TreeItemCollapsibleState.None),
+          );
+      case "technical":
+        return [
+          new TreeGroupItem("adr", "Architectural Decisions", "history"),
+          new TreeGroupItem("arch", "Architecture Design", "layout"),
+          new TreeGroupItem("spec", "Services", "file-code"),
+        ];
+      case "fr":
+        return this.items
+          .filter((i) => i.data.type === "fr")
+          .sort((a, b) => a.data.id.localeCompare(b.data.id))
+          .map(
+            (i) => new SpecTreeItem(i, vscode.TreeItemCollapsibleState.None),
+          );
+      case "nfr":
+        return this.items
+          .filter((i) => i.data.type === "nfr")
+          .sort((a, b) => a.data.id.localeCompare(b.data.id))
+          .map(
+            (i) => new SpecTreeItem(i, vscode.TreeItemCollapsibleState.None),
+          );
+      case "adr":
+        return this.items
+          .filter((i) => i.data.type === "adr")
+          .sort((a, b) => a.data.id.localeCompare(b.data.id))
+          .map(
+            (i) => new SpecTreeItem(i, vscode.TreeItemCollapsibleState.None),
+          );
+      case "arch":
+        return [
+          new TreeGroupItem("arch-docs", "Architecture Docs", "layout"),
+          new TreeGroupItem("cicd", "CI/CD", "settings-gear"),
+          new TreeGroupItem("auth-spec", "Roles & Authorization", "shield"),
+        ];
+      case "arch-docs":
+        return this.items
+          .filter((i) => i.data.type === "arch")
+          .sort((a, b) => a.data.id.localeCompare(b.data.id))
+          .map(
+            (i) => new SpecTreeItem(i, vscode.TreeItemCollapsibleState.None),
+          );
+      case "spec":
+        return this.items
+          .filter(
+            (i) => i.data.type === "tech-spec" && !i.data.id.startsWith("DB-"),
+          )
+          .sort((a, b) => a.data.id.localeCompare(b.data.id))
+          .map(
+            (i) => new SpecTreeItem(i, vscode.TreeItemCollapsibleState.None),
+          );
+      case "database":
+        return this.items
+          .filter((i) => i.data.type === "db-table")
+          .sort((a, b) => a.data.id.localeCompare(b.data.id))
+          .map(
+            (i) => new SpecTreeItem(i, vscode.TreeItemCollapsibleState.None),
+          );
+      case "cicd":
+        return this.items
+          .filter((i) => i.data.type === "cicd")
+          .sort((a, b) => a.data.id.localeCompare(b.data.id))
+          .map(
+            (i) => new SpecTreeItem(i, vscode.TreeItemCollapsibleState.None),
+          );
+      case "auth-spec":
+        return this.items
+          .filter((i) => i.data.type === "auth-spec")
+          .sort((a, b) => a.data.id.localeCompare(b.data.id))
+          .map(
+            (i) => new SpecTreeItem(i, vscode.TreeItemCollapsibleState.None),
+          );
+      case "team":
+        // Members shown directly — no sub-group folder
+        return this.items
+          .filter((i) => i.data.type === "member")
+          .sort((a, b) => a.data.id.localeCompare(b.data.id))
+          .map(
+            (i) => new SpecTreeItem(i, vscode.TreeItemCollapsibleState.None),
+          );
+      default:
+        return [];
+    }
+  }
+
   getChildren(element?: AnyTreeItem): AnyTreeItem[] {
     if (!element) {
-      return [
-        new TreeGroupItem("requirements", "Requirements", "list-unordered"),
-        new TreeGroupItem("backlog", "Backlog", "archive"),
-        new TreeGroupItem("sprints-releases", "Sprints & Releases", "calendar"),
-        new TreeGroupItem("technical", "Technical", "circuit-board"),
-      ];
+      // Not used when section panels are registered — SectionTreeAdapter handles root.
+      return [];
     }
 
     if (element instanceof TreeGroupItem) {
-      switch (element.groupId) {
-        case "requirements":
-          return [
-            new TreeGroupItem(
-              "fr",
-              "Functional Requirements",
-              "symbol-interface",
-            ),
-            new TreeGroupItem(
-              "nfr",
-              "Non-Functional Requirements",
-              "symbol-property",
-            ),
-          ];
-        case "backlog":
-          return this.items
-            .filter((i) => i.data.type === "epic")
-            .sort((a, b) => a.data.id.localeCompare(b.data.id))
-            .map((i) => {
-              const hasStories = this.items.some(
-                (s) => s.data.type === "story" && s.data.epicId === i.data.id,
-              );
-              return new SpecTreeItem(
-                i,
-                hasStories
-                  ? vscode.TreeItemCollapsibleState.Expanded
-                  : vscode.TreeItemCollapsibleState.Collapsed,
-              );
-            });
-        case "sprints-releases":
-          return [
-            new TreeGroupItem("sprints", "Sprints", "calendar"),
-            new TreeGroupItem("releases", "Releases", "tag"),
-          ];
-        case "sprints":
-          return this.items
-            .filter((i) => i.data.type === "sprint")
-            .sort((a, b) => a.data.id.localeCompare(b.data.id))
-            .map((i) => {
-              const hasStories = this.items.some(
-                (s) =>
-                  (s.data.type === "story" ||
-                    s.data.type === "task" ||
-                    s.data.type === "bug") &&
-                  s.data.sprintId === i.data.id,
-              );
-              return new SpecTreeItem(
-                i,
-                hasStories
-                  ? vscode.TreeItemCollapsibleState.Collapsed
-                  : vscode.TreeItemCollapsibleState.None,
-              );
-            });
-        case "releases":
-          return this.items
-            .filter((i) => i.data.type === "release")
-            .sort((a, b) => a.data.id.localeCompare(b.data.id))
-            .map(
-              (i) => new SpecTreeItem(i, vscode.TreeItemCollapsibleState.None),
-            );
-        case "technical":
-          return [
-            new TreeGroupItem("adr", "Architectural Decisions", "history"),
-            new TreeGroupItem("arch", "Architecture Design", "layout"),
-            new TreeGroupItem("spec", "Technical Specs", "file-code"),
-            new TreeGroupItem("database", "Database", "database"),
-          ];
-        case "fr":
-          return this.items
-            .filter((i) => i.data.type === "fr")
-            .sort((a, b) => a.data.id.localeCompare(b.data.id))
-            .map(
-              (i) => new SpecTreeItem(i, vscode.TreeItemCollapsibleState.None),
-            );
-        case "nfr":
-          return this.items
-            .filter((i) => i.data.type === "nfr")
-            .sort((a, b) => a.data.id.localeCompare(b.data.id))
-            .map(
-              (i) => new SpecTreeItem(i, vscode.TreeItemCollapsibleState.None),
-            );
-        case "adr":
-          return this.items
-            .filter((i) => i.data.type === "adr")
-            .sort((a, b) => a.data.id.localeCompare(b.data.id))
-            .map(
-              (i) => new SpecTreeItem(i, vscode.TreeItemCollapsibleState.None),
-            );
-        case "arch":
-          return this.items
-            .filter((i) => i.data.type === "arch")
-            .sort((a, b) => a.data.id.localeCompare(b.data.id))
-            .map(
-              (i) => new SpecTreeItem(i, vscode.TreeItemCollapsibleState.None),
-            );
-        case "spec":
-          return this.items
-            .filter(
-              (i) =>
-                i.data.type === "tech-spec" && !i.data.id.startsWith("DB-"),
-            )
-            .sort((a, b) => a.data.id.localeCompare(b.data.id))
-            .map(
-              (i) => new SpecTreeItem(i, vscode.TreeItemCollapsibleState.None),
-            );
-        case "database":
-          return this.items
-            .filter((i) => i.data.type === "db-table")
-            .sort((a, b) => a.data.id.localeCompare(b.data.id))
-            .map(
-              (i) => new SpecTreeItem(i, vscode.TreeItemCollapsibleState.None),
-            );
-        default:
-          return [];
-      }
+      return this.getGroupChildren(element.groupId);
     }
 
     // SpecTreeItem children
@@ -308,5 +374,148 @@ export class SpecTreeDataProvider implements vscode.TreeDataProvider<AnyTreeItem
     }
 
     return [];
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Section tree adapter — thin wrapper used for each side panel
+// ---------------------------------------------------------------------------
+
+export class SectionTreeAdapter implements vscode.TreeDataProvider<AnyTreeItem> {
+  private _emitter = new vscode.EventEmitter<
+    AnyTreeItem | undefined | null | void
+  >();
+  readonly onDidChangeTreeData = this._emitter.event;
+
+  constructor(
+    private readonly master: SpecTreeDataProvider,
+    public readonly section: string,
+  ) {}
+
+  fire(): void {
+    this._emitter.fire();
+  }
+
+  getTreeItem(element: AnyTreeItem): vscode.TreeItem {
+    return element;
+  }
+
+  getChildren(element?: AnyTreeItem): AnyTreeItem[] {
+    if (!element) {
+      return this.master.getGroupChildren(this.section);
+    }
+    return this.master.getChildren(element);
+  }
+
+  getParent(element: AnyTreeItem): AnyTreeItem | undefined {
+    if (element instanceof TreeGroupItem) {
+      // Second-level groups nested under "arch"
+      if (
+        element.groupId === "arch-docs" ||
+        element.groupId === "cicd" ||
+        element.groupId === "auth-spec"
+      ) {
+        return new TreeGroupItem("arch", "Architecture Design", "layout");
+      }
+      return undefined; // top-level groups have no parent
+    }
+
+    // SpecTreeItem — parent depends on the section this adapter serves
+    const { type } = element.spec.data;
+    const items = this.master.getAllItems();
+
+    switch (this.section) {
+      case "requirements":
+        if (type === "fr") {
+          return new TreeGroupItem(
+            "fr",
+            "Functional Requirements",
+            "symbol-interface",
+          );
+        }
+        if (type === "nfr") {
+          return new TreeGroupItem(
+            "nfr",
+            "Non-Functional Requirements",
+            "symbol-property",
+          );
+        }
+        break;
+
+      case "backlog": {
+        if (type === "story" && element.spec.data.epicId) {
+          const epic = items.find(
+            (i) => i.data.id === element.spec.data.epicId,
+          );
+          if (epic) {
+            return new SpecTreeItem(
+              epic,
+              vscode.TreeItemCollapsibleState.Expanded,
+            );
+          }
+        }
+        if ((type === "task" || type === "bug") && element.spec.data.storyId) {
+          const story = items.find(
+            (i) => i.data.id === element.spec.data.storyId,
+          );
+          if (story) {
+            return new SpecTreeItem(
+              story,
+              vscode.TreeItemCollapsibleState.Expanded,
+            );
+          }
+        }
+        break;
+      }
+
+      case "sprints-releases":
+        if (type === "sprint") {
+          return new TreeGroupItem("sprints", "Sprints", "calendar");
+        }
+        if (type === "release") {
+          return new TreeGroupItem("releases", "Releases", "tag");
+        }
+        if (
+          (type === "story" || type === "task" || type === "bug") &&
+          element.spec.data.sprintId
+        ) {
+          const sprint = items.find(
+            (i) => i.data.id === element.spec.data.sprintId,
+          );
+          if (sprint) {
+            return new SpecTreeItem(
+              sprint,
+              vscode.TreeItemCollapsibleState.Expanded,
+            );
+          }
+        }
+        break;
+
+      case "technical":
+        if (type === "adr") {
+          return new TreeGroupItem("adr", "Architectural Decisions", "history");
+        }
+        if (type === "arch") {
+          return new TreeGroupItem("arch-docs", "Architecture Docs", "layout");
+        }
+        if (type === "tech-spec") {
+          return new TreeGroupItem("spec", "Services", "file-code");
+        }
+        if (type === "cicd") {
+          return new TreeGroupItem("cicd", "CI/CD", "settings-gear");
+        }
+        if (type === "auth-spec") {
+          return new TreeGroupItem(
+            "auth-spec",
+            "Roles & Authorization",
+            "shield",
+          );
+        }
+        break;
+
+      // "database" and "team": items sit at root level, no parent
+    }
+
+    return undefined;
   }
 }

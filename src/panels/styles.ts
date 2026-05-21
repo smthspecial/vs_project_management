@@ -1,14 +1,8 @@
-import * as vscode from "vscode";
-import * as fs from "fs";
-import * as path from "path";
-import { SpecItem, SpecFrontMatter } from "./models";
-import { parseFrontMatter, buildFrontMatter } from "./specParser";
-
 // ---------------------------------------------------------------------------
-// Styles injected into the webview
+// CSS styles injected into the planning panel webview
 // ---------------------------------------------------------------------------
 
-const STYLES = /* css */ `
+export const STYLES = /* css */ `
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
   body {
@@ -202,6 +196,12 @@ const STYLES = /* css */ `
     word-break: break-all;
   }
 
+  .card-assignee {
+    margin-top: 4px;
+    font-size: 10px;
+    opacity: 0.75;
+  }
+
   .empty { padding: 8px; font-size: 11px; opacity: 0.4; text-align: center; }
 
   /* ── Timeline ── */
@@ -230,6 +230,10 @@ const STYLES = /* css */ `
     opacity: 0.7;
     border-bottom: 1px solid var(--vscode-panel-border);
     flex-shrink: 0;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: var(--vscode-editor-background);
   }
 
   .timeline-label-row {
@@ -283,6 +287,19 @@ const STYLES = /* css */ `
     overflow: auto;
     position: relative;
   }
+
+  .sprint-fold-btn {
+    background: none;
+    border: none;
+    color: var(--vscode-foreground);
+    opacity: 0.6;
+    font-size: 8px;
+    cursor: pointer;
+    padding: 0 2px;
+    line-height: 1;
+    flex-shrink: 0;
+  }
+  .sprint-fold-btn:hover { opacity: 1; }
 
   .timeline-chart.drop-target {
     outline: 2px dashed var(--vscode-focusBorder);
@@ -385,6 +402,10 @@ const STYLES = /* css */ `
     cursor: grabbing;
     box-shadow: 0 4px 16px rgba(0,0,0,0.35);
   }
+  .db-node--selected {
+    border-color: #60a5fa;
+    box-shadow: 0 0 0 2px rgba(96,165,250,0.35), 0 4px 16px rgba(0,0,0,0.35);
+  }
 
   .db-node-header {
     display: flex;
@@ -483,235 +504,3 @@ const STYLES = /* css */ `
     opacity: 0.5;
   }
 `;
-
-// ---------------------------------------------------------------------------
-// PlanningPanel — manages the central editor webview panel
-// ---------------------------------------------------------------------------
-
-export class PlanningPanel {
-  static readonly viewType = "projectSpecPlanning";
-  private static _instance: PlanningPanel | undefined;
-
-  private readonly _panel: vscode.WebviewPanel;
-  private _items: SpecItem[] = [];
-  private readonly _extensionUri: vscode.Uri;
-  private readonly _disposables: vscode.Disposable[] = [];
-
-  // Callback for persisting changes back to markdown files
-  private readonly _onPatch: (
-    filePath: string,
-    patch: Record<string, string>,
-  ) => void;
-
-  // Callback for deleting a file (e.g. a db-table)
-  private readonly _onDelete: (filePath: string) => void;
-
-  // ---------------------------------------------------------------------------
-
-  static createOrShow(
-    context: vscode.ExtensionContext,
-    items: SpecItem[],
-    onPatch: (filePath: string, patch: Record<string, string>) => void,
-    onDelete: (filePath: string) => void,
-  ): void {
-    const column = vscode.ViewColumn.One;
-
-    if (PlanningPanel._instance) {
-      PlanningPanel._instance._panel.reveal(column);
-      PlanningPanel._instance.update(items);
-      return;
-    }
-
-    const panel = vscode.window.createWebviewPanel(
-      PlanningPanel.viewType,
-      "Project Planning",
-      column,
-      {
-        enableScripts: true,
-        retainContextWhenHidden: true,
-        localResourceRoots: [vscode.Uri.joinPath(context.extensionUri, "dist")],
-      },
-    );
-
-    PlanningPanel._instance = new PlanningPanel(
-      panel,
-      context.extensionUri,
-      items,
-      onPatch,
-      onDelete,
-    );
-  }
-
-  static update(items: SpecItem[]): void {
-    PlanningPanel._instance?.update(items);
-  }
-
-  // ---------------------------------------------------------------------------
-
-  private constructor(
-    panel: vscode.WebviewPanel,
-    extensionUri: vscode.Uri,
-    items: SpecItem[],
-    onPatch: (filePath: string, patch: Record<string, string>) => void,
-    onDelete: (filePath: string) => void,
-  ) {
-    this._panel = panel;
-    this._extensionUri = extensionUri;
-    this._items = items;
-    this._onPatch = onPatch;
-    this._onDelete = onDelete;
-
-    this._panel.iconPath = new vscode.ThemeIcon("project");
-    this._panel.webview.options = {
-      enableScripts: true,
-      localResourceRoots: [vscode.Uri.joinPath(extensionUri, "dist")],
-    };
-
-    this._panel.webview.html = this._buildHtml();
-
-    // Send items as soon as the webview is ready
-    this._panel.webview.onDidReceiveMessage(
-      (msg: {
-        type: string;
-        filePath?: string;
-        id?: string;
-        status?: string;
-        startDate?: string;
-        dueDate?: string;
-        sprintId?: string;
-        releaseId?: string;
-      }) => {
-        if (msg.type === "openFile" && msg.filePath) {
-          vscode.window.showTextDocument(vscode.Uri.file(msg.filePath));
-        } else if (
-          msg.type === "updateStatus" &&
-          msg.filePath &&
-          msg.id &&
-          msg.status
-        ) {
-          this._onPatch(msg.filePath, { status: msg.status });
-        } else if (
-          msg.type === "updateDates" &&
-          msg.filePath &&
-          msg.startDate &&
-          msg.dueDate
-        ) {
-          this._onPatch(msg.filePath, {
-            startDate: msg.startDate,
-            dueDate: msg.dueDate,
-          });
-        } else if (msg.type === "updateSprint" && msg.filePath) {
-          this._onPatch(msg.filePath, { sprintId: msg.sprintId ?? "" });
-        } else if (msg.type === "updateRelease" && msg.filePath) {
-          this._onPatch(msg.filePath, { releaseId: msg.releaseId ?? "" });
-        } else if (msg.type === "createTable") {
-          vscode.commands.executeCommand("project-spec.newTable");
-        } else if (msg.type === "deleteTable" && msg.filePath) {
-          this._onDelete(msg.filePath);
-        }
-      },
-      null,
-      this._disposables,
-    );
-
-    this._panel.onDidDispose(() => this._dispose(), null, this._disposables);
-
-    // Push items after initial render
-    setTimeout(() => this._postItems(), 100);
-  }
-
-  update(items: SpecItem[]): void {
-    this._items = items;
-    this._postItems();
-  }
-
-  private _postItems(): void {
-    const data = this._items.map((i) => ({
-      id: i.data.id,
-      type: i.data.type,
-      title: i.data.title,
-      status: i.data.status,
-      priority: i.data.priority,
-      epicId: i.data.epicId,
-      storyId: i.data.storyId,
-      sprintId: i.data.sprintId,
-      releaseId: i.data.releaseId,
-      dependsOn: i.data.dependsOn,
-      startDate: i.data.startDate,
-      dueDate: i.data.dueDate,
-      releaseDate: i.data.releaseDate,
-      filePath: i.filePath,
-      ...(i.data.type === "db-table"
-        ? { body: i.body, relations: i.data.relations }
-        : {}),
-    }));
-    this._panel.webview.postMessage({ type: "update", items: data });
-  }
-
-  private _buildHtml(): string {
-    const webviewUri = this._panel.webview.asWebviewUri(
-      vscode.Uri.joinPath(this._extensionUri, "dist", "webview.js"),
-    );
-    const nonce = getNonce();
-
-    return /* html */ `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta http-equiv="Content-Security-Policy"
-    content="default-src 'none';
-             style-src 'unsafe-inline';
-             script-src 'nonce-${nonce}';">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Project Planning</title>
-  <style>${STYLES}</style>
-</head>
-<body>
-  <div id="root"></div>
-  <script nonce="${nonce}" src="${webviewUri}"></script>
-</body>
-</html>`;
-  }
-
-  private _dispose(): void {
-    PlanningPanel._instance = undefined;
-    this._panel.dispose();
-    for (const d of this._disposables) {
-      d.dispose();
-    }
-    this._disposables.length = 0;
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Patch helper — apply key/value changes to a file's front matter
-// ---------------------------------------------------------------------------
-
-export function patchFrontMatter(
-  filePath: string,
-  patch: Record<string, string>,
-): void {
-  if (!fs.existsSync(filePath)) {
-    return;
-  }
-  const content = fs.readFileSync(filePath, "utf-8");
-  const { data, body } = parseFrontMatter(content);
-  // Apply patch onto the parsed data object
-  Object.assign(data, patch);
-  const updated = buildFrontMatter(data as SpecFrontMatter) + body;
-  fs.writeFileSync(filePath, updated, "utf-8");
-}
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-function getNonce(): string {
-  let text = "";
-  const possible =
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-  for (let i = 0; i < 32; i++) {
-    text += possible.charAt(Math.floor(Math.random() * possible.length));
-  }
-  return text;
-}

@@ -27,7 +27,7 @@ export function App(): React.ReactElement {
   return (
     <div className="app">
       <div className="toolbar">
-        <span className="toolbar-title">Project Planning</span>
+        <span className="toolbar-title">Project View</span>
         <div className="tabs">
           <button
             className={`tab${view === "board" ? " active" : ""}`}

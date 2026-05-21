@@ -65,6 +65,8 @@ export function parseFrontMatter(content: string): {
     releaseDate: raw["releaseDate"],
     relations: raw["relations"],
     priority: raw["priority"] as ItemPriority | undefined,
+    assigneeId: raw["assigneeId"],
+    role: raw["role"],
   };
 
   return { data, body };
@@ -114,6 +116,12 @@ export function buildFrontMatter(data: SpecFrontMatter): string {
   if (data.priority) {
     lines.push(`priority: ${data.priority}`);
   }
+  if (data.assigneeId) {
+    lines.push(`assigneeId: ${data.assigneeId}`);
+  }
+  if (data.role) {
+    lines.push(`role: ${data.role}`);
+  }
   lines.push(`created: ${data.created}`);
   lines.push("---");
   lines.push("");
@@ -142,6 +150,9 @@ export function getTypeDir(rootPath: string, type: ItemType): string {
     "db-table": "technical/database",
     sprint: "planning/sprints",
     release: "planning/releases",
+    member: "team/members",
+    cicd: "technical/cicd",
+    "auth-spec": "technical/auth",
   };
   return path.join(getSpecDir(rootPath), subdirMap[type] ?? type);
 }
@@ -182,6 +193,9 @@ export function readAllSpecItems(rootPath: string): SpecItem[] {
     "technical/architecture",
     "technical/specs",
     "technical/database",
+    "technical/cicd",
+    "technical/auth",
+    "team/members",
   ]) {
     const dirPath = path.join(specDir, subdir);
     if (!fs.existsSync(dirPath)) {

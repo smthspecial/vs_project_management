@@ -19,6 +19,8 @@ function fm(fields) {
   if (fields.releaseDate) lines.push(`releaseDate: ${fields.releaseDate}`);
   if (fields.relations) lines.push(`relations: ${fields.relations}`);
   if (fields.priority) lines.push(`priority: ${fields.priority}`);
+  if (fields.assigneeId) lines.push(`assigneeId: ${fields.assigneeId}`);
+  if (fields.role) lines.push(`role: ${fields.role}`);
   lines.push(`created: ${fields.created || "2026-05-01"}`);
   lines.push("---");
   lines.push("");

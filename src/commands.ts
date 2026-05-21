@@ -51,7 +51,9 @@ async function pickPriority(): Promise<ItemPriority | undefined> {
 }
 
 async function openFile(filePath: string): Promise<void> {
-  await vscode.window.showTextDocument(vscode.Uri.file(filePath));
+  const uri = vscode.Uri.file(filePath);
+  await vscode.commands.executeCommand("project-spec._revealInTree", filePath);
+  await vscode.window.showTextDocument(uri);
 }
 
 // ---------------------------------------------------------------------------

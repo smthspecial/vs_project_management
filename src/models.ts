@@ -5,6 +5,7 @@ export type ItemStatus =
   | "done"
   | "blocked"
   | "todo"
+  | "testing"
   | "proposed"
   | "accepted"
   | "deprecated"
@@ -25,7 +26,10 @@ export type ItemType =
   | "tech-spec"
   | "sprint"
   | "release"
-  | "db-table";
+  | "db-table"
+  | "member"
+  | "cicd"
+  | "auth-spec";
 
 export interface SpecFrontMatter {
   id: string;
@@ -54,6 +58,10 @@ export interface SpecFrontMatter {
   /** FK relations for db-table — comma-separated colName:tableId pairs */
   relations?: string;
   priority?: ItemPriority;
+  /** Member this task/bug is assigned to */
+  assigneeId?: string;
+  /** Role of a member */
+  role?: string;
 }
 
 export interface SpecItem {
@@ -67,6 +75,7 @@ export const STORY_STATUSES: ItemStatus[] = ["draft", "active", "done"];
 export const TASK_STATUSES: ItemStatus[] = [
   "todo",
   "in-progress",
+  "testing",
   "blocked",
   "done",
 ];
@@ -80,3 +89,6 @@ export const ADR_STATUSES: ItemStatus[] = [
 export const TECH_STATUSES: ItemStatus[] = ["draft", "active", "done"];
 export const SPRINT_STATUSES: ItemStatus[] = ["planned", "active", "done"];
 export const RELEASE_STATUSES: ItemStatus[] = ["draft", "active", "released"];
+export const MEMBER_STATUSES: ItemStatus[] = ["active", "draft"];
+export const CICD_STATUSES: ItemStatus[] = ["draft", "active", "done"];
+export const AUTH_SPEC_STATUSES: ItemStatus[] = ["draft", "active", "done"];

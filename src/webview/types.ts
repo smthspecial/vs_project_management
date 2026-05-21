@@ -17,6 +17,8 @@ export interface ItemData {
   filePath: string;
   body?: string; // raw markdown body (only sent for db-table items)
   relations?: string; // FK relations: "col:TBL-ID,col:TBL-ID"
+  assigneeId?: string; // member ID assigned to this task/bug
+  role?: string; // role of a member
 }
 
 export type View = "board" | "timeline" | "dependencies" | "database";

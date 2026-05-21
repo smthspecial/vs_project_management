@@ -6,6 +6,7 @@ const seedReleases = require("./seed/releases");
 const seedEpics = require("./seed/epics");
 const seedStories = require("./seed/stories");
 const seedTasks = require("./seed/tasks");
+const seedMembers = require("./seed/members");
 const seedRequirements = require("./seed/requirements");
 const seedTechnical = require("./seed/technical");
 const seedDatabase = require("./seed/database");
@@ -19,11 +20,14 @@ const releaseCount = seedReleases(write, fm);
 const epicCount = seedEpics(write, fm);
 const storyCount = seedStories(write, fm);
 const { tasks: taskCount, bugs: bugCount } = seedTasks(write, fm);
+const memberCount = seedMembers(write, fm);
 const { frs: frCount, nfrs: nfrCount } = seedRequirements(write, fm);
 const {
   adrs: adrCount,
   arch: archCount,
   specs: specCount,
+  cicd: cicdCount,
+  authSpecs: authSpecCount,
 } = seedTechnical(write, fm);
 const dbCount = seedDatabase(write, fm);
 
@@ -34,11 +38,14 @@ const counts = {
   stories: storyCount,
   tasks: taskCount,
   bugs: bugCount,
+  members: memberCount,
   frs: frCount,
   nfrs: nfrCount,
   adrs: adrCount,
   arch: archCount,
   specs: specCount,
+  cicd: cicdCount,
+  "auth-specs": authSpecCount,
   database: dbCount,
 };
 
