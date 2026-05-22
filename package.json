@@ -3,6 +3,7 @@
   "displayName": "Project Spec",
   "description": "Project planning extension: requirements, epics, user stories, tasks, ADRs, and architecture docs",
   "version": "0.0.1",
+  "license": "Elastic-2.0",
   "engines": {
     "vscode": "^1.120.0"
   },
@@ -25,6 +26,11 @@
     },
     "views": {
       "projectSpec": [
+        {
+          "id": "projectSpecSyncTree",
+          "name": "Sync",
+          "contextualTitle": "Project Spec"
+        },
         {
           "id": "projectSpecRequirementsTree",
           "name": "Requirements",
@@ -201,6 +207,36 @@
         "title": "Open Database View",
         "icon": "$(project)",
         "category": "Project Spec"
+      },
+      {
+        "command": "project-spec.syncRefresh",
+        "title": "Refresh Sync Status",
+        "icon": "$(refresh)",
+        "category": "Project Spec"
+      },
+      {
+        "command": "project-spec.syncCommit",
+        "title": "Commit Spec Changes…",
+        "icon": "$(git-commit)",
+        "category": "Project Spec"
+      },
+      {
+        "command": "project-spec.syncPush",
+        "title": "Push Branch",
+        "icon": "$(cloud-upload)",
+        "category": "Project Spec"
+      },
+      {
+        "command": "project-spec.syncPull",
+        "title": "Pull from Remote",
+        "icon": "$(cloud-download)",
+        "category": "Project Spec"
+      },
+      {
+        "command": "project-spec.syncOpenPR",
+        "title": "Open Pull Request",
+        "icon": "$(git-pull-request)",
+        "category": "Project Spec"
       }
     ],
     "menus": {
@@ -220,6 +256,22 @@
         {
           "command": "project-spec.openDatabase",
           "when": "false"
+        },
+        {
+          "command": "project-spec.syncCommit",
+          "when": "false"
+        },
+        {
+          "command": "project-spec.syncPush",
+          "when": "false"
+        },
+        {
+          "command": "project-spec.syncPull",
+          "when": "false"
+        },
+        {
+          "command": "project-spec.syncOpenPR",
+          "when": "false"
         }
       ],
       "view/title": [
@@ -237,6 +289,26 @@
           "command": "project-spec.openDatabase",
           "when": "view == projectSpecDatabaseTree",
           "group": "navigation@1"
+        },
+        {
+          "command": "project-spec.syncCommit",
+          "when": "view == projectSpecSyncTree",
+          "group": "navigation@1"
+        },
+        {
+          "command": "project-spec.syncPull",
+          "when": "view == projectSpecSyncTree",
+          "group": "navigation@2"
+        },
+        {
+          "command": "project-spec.syncPush",
+          "when": "view == projectSpecSyncTree",
+          "group": "navigation@3"
+        },
+        {
+          "command": "project-spec.syncRefresh",
+          "when": "view == projectSpecSyncTree",
+          "group": "navigation@4"
         },
         {
           "command": "project-spec.newEpic",
@@ -361,7 +433,7 @@
       {
         "name": "project-spec_read-spec",
         "displayName": "Read Project Spec",
-        "description": "Returns the full project specification: requirements, epics, user stories, tasks, bugs, sprints, releases, ADRs, architecture docs, database schema, and team members.",
+        "modelDescription": "Returns the full project specification: requirements, epics, user stories, tasks, bugs, sprints, releases, ADRs, architecture docs, database schema, and team members.",
         "canBeReferencedInPrompt": true,
         "icon": "$(project)",
         "inputSchema": {
@@ -400,5 +472,11 @@
     "react-dom": "^19.2.6",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.56.1"
+  },
+  "publisher": "Venti80",
+  "icon": "resources/icon.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/smthspecial/vs_project_management"
   }
 }

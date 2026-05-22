@@ -111,6 +111,16 @@ export class PlanningPanel {
         sprintId?: string;
         releaseId?: string;
       }) => {
+        if (msg.type === "ready") {
+          this._postItems();
+          if (this._initialView) {
+            this._panel.webview.postMessage({
+              type: "setView",
+              view: this._initialView,
+            });
+          }
+          return;
+        }
         if (msg.type === "openFile" && msg.filePath) {
           const uri = vscode.Uri.file(msg.filePath);
           vscode.commands.executeCommand(
@@ -150,17 +160,6 @@ export class PlanningPanel {
     );
 
     this._panel.onDidDispose(() => this._dispose(), null, this._disposables);
-
-    // Push items after initial render
-    setTimeout(() => {
-      this._postItems();
-      if (this._initialView) {
-        this._panel.webview.postMessage({
-          type: "setView",
-          view: this._initialView,
-        });
-      }
-    }, 100);
   }
 
   update(items: SpecItem[]): void {

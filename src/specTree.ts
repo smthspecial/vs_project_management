@@ -105,9 +105,27 @@ export class SpecTreeDataProvider implements vscode.TreeDataProvider<AnyTreeItem
   readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
 
   private items: SpecItem[] = [];
+  private _loaded = false;
+  private _readyPromise: Promise<void>;
 
   constructor(private rootPath: string) {
-    this.load();
+    // Defer the initial load so tree views can render their loading state first.
+    this._readyPromise = new Promise<void>((resolve) => {
+      setImmediate(() => {
+        this.load();
+        this._loaded = true;
+        resolve();
+        this._onDidChangeTreeData.fire();
+      });
+    });
+  }
+
+  isLoaded(): boolean {
+    return this._loaded;
+  }
+
+  waitReady(): Promise<void> {
+    return this._readyPromise;
   }
 
   setRootPath(rootPath: string): void {
@@ -400,8 +418,13 @@ export class SectionTreeAdapter implements vscode.TreeDataProvider<AnyTreeItem> 
     return element;
   }
 
-  getChildren(element?: AnyTreeItem): AnyTreeItem[] {
+  getChildren(element?: AnyTreeItem): AnyTreeItem[] | Promise<AnyTreeItem[]> {
     if (!element) {
+      if (!this.master.isLoaded()) {
+        return this.master
+          .waitReady()
+          .then(() => this.master.getGroupChildren(this.section));
+      }
       return this.master.getGroupChildren(this.section);
     }
     return this.master.getChildren(element);

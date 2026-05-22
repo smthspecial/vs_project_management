@@ -30,6 +30,7 @@ export type ExtensionMessage =
 
 // Messages webview → extension
 export type WebviewMessage =
+  | { type: "ready" }
   | { type: "openFile"; filePath: string }
   | { type: "updateStatus"; id: string; status: string; filePath: string }
   | {

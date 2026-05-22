@@ -60,6 +60,35 @@ export const STYLES = /* css */ `
 
   .content { flex: 1; overflow: hidden; }
 
+  /* ── Loading ── */
+  .loading-overlay {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    gap: 12px;
+    opacity: 0.6;
+  }
+
+  .loading-spinner {
+    width: 28px;
+    height: 28px;
+    border: 3px solid var(--vscode-panel-border);
+    border-top-color: var(--vscode-progressBar-background);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  .loading-text {
+    font-size: 13px;
+    color: var(--vscode-descriptionForeground);
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
   /* ── Board ── */
   .board {
     display: flex;
