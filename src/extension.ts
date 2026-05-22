@@ -11,6 +11,7 @@ import { SpecCodeLensProvider } from "./codeLens";
 import { SpecDefinitionProvider } from "./definitionProvider";
 import { PlanningPanel, patchFrontMatter } from "./panels";
 import { registerSpecTool } from "./specTool";
+import { registerHoverProvider } from "./hoverProvider";
 import { SyncTreeDataProvider } from "./syncTree";
 import {
   fetchRemote,
@@ -157,6 +158,9 @@ export function activate(context: vscode.ExtensionContext): void {
       new SpecDefinitionProvider(() => provider.getAllItems()),
     ),
   );
+
+  // Hover docs for front-matter field keys
+  registerHoverProvider(context, () => provider.getAllItems());
 
   // Watch .spec/ folder and refresh tree on any change
   if (rootPath) {
