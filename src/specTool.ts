@@ -1,6 +1,9 @@
 import * as vscode from "vscode";
+import * as fs from "fs";
+import * as path from "path";
+import { parseFrontMatter } from "./specParser";
 import type { SpecTreeDataProvider } from "./specTree";
-import type { SpecItem } from "./models";
+import type { ItemType, ItemStatus, SpecItem } from "./models";
 
 // ---------------------------------------------------------------------------
 // Type labels for display
@@ -116,6 +119,508 @@ function buildSpecContent(items: SpecItem[]): string {
 }
 
 // ---------------------------------------------------------------------------
+// Spec schema — instructions for AI when creating / editing spec files
+// ---------------------------------------------------------------------------
+
+const SPEC_SCHEMA = `# Project Spec — Document Schema Reference
+
+All spec documents are Markdown files with a YAML front-matter block delimited by \`---\`.
+They live inside the \`.spec/\` folder at the workspace root.
+
+---
+
+## Directory layout
+
+| Type        | Directory                        | File name pattern  | ID prefix |
+|-------------|----------------------------------|--------------------|-----------|
+| epic        | .spec/backlog/epics/             | epic-NNN.md        | EPIC-NNN  |
+| story       | .spec/backlog/stories/           | us-NNN.md          | US-NNN    |
+| task        | .spec/backlog/tasks/             | task-NNN.md        | TASK-NNN  |
+| bug         | .spec/backlog/tasks/             | bug-NNN.md         | BUG-NNN   |
+| fr          | .spec/requirements/fr/           | fr-NNN.md          | FR-NNN    |
+| nfr         | .spec/requirements/nfr/          | nfr-NNN.md         | NFR-NNN   |
+| sprint      | .spec/planning/sprints/          | spr-NNN.md         | SPR-NNN   |
+| release     | .spec/planning/releases/         | rel-NNN.md         | REL-NNN   |
+| adr         | .spec/technical/adr/             | adr-NNN.md         | ADR-NNN   |
+| arch        | .spec/technical/architecture/    | arch-NNN.md        | ARCH-NNN  |
+| tech-spec   | .spec/technical/specs/           | spec-NNN.md        | SPEC-NNN  |
+| db-table    | .spec/technical/database/        | tbl-NNN.md         | TBL-NNN   |
+| cicd        | .spec/technical/cicd/            | cicd-NNN.md        | CICD-NNN  |
+| auth-spec   | .spec/technical/auth/            | auth-NNN.md        | AUTH-NNN  |
+| member      | .spec/team/members/              | mbr-NNN.md         | MBR-NNN   |
+
+NNN is a zero-padded 3-digit sequential number (001, 002, …).
+Always use the NEXT available number — call \`project-spec_read-spec\` to check existing IDs.
+
+---
+
+## Front-matter fields
+
+### Common fields (ALL types)
+
+\`\`\`yaml
+id: EPIC-001          # required — uppercase ID matching the type prefix
+type: epic            # required — one of the type values in the table above
+title: "…"            # required — human-readable title, always quoted
+status: draft         # required — see valid values per type below
+created: 2026-01-15   # required — ISO date YYYY-MM-DD (today)
+\`\`\`
+
+### Optional relational fields
+
+\`\`\`yaml
+epicId: EPIC-001      # story — REQUIRED parent epic reference
+storyId: US-001       # task / bug — REQUIRED parent story reference
+sprintId: SPR-001     # story / task / bug — sprint assignment
+releaseId: REL-001    # story / task / bug — release assignment
+linkedIds: FR-001,US-002   # fr / nfr — comma-separated linked item IDs (no spaces)
+dependsOn: TASK-003,TASK-004   # task / bug / story — prerequisites (no spaces)
+assigneeId: MBR-001   # task / bug — team member assignment
+role: frontend        # member — role of the team member
+priority: high        # story / task / bug / fr / nfr — high | medium | low
+startDate: 2026-01-15 # epic / story / task / bug / sprint — ISO date
+dueDate: 2026-01-28   # epic / story / task / bug / sprint — ISO date
+releaseDate: 2026-06-30   # release — ISO date
+relations: userId:TBL-001,orderId:TBL-002   # db-table — FK relations
+\`\`\`
+
+---
+
+## Valid status values per type
+
+| Type              | Valid statuses                                   |
+|-------------------|--------------------------------------------------|
+| epic              | draft · active · done                            |
+| story             | draft · active · done                            |
+| task              | todo · in-progress · testing · blocked · done    |
+| bug               | todo · in-progress · testing · blocked · done    |
+| fr                | draft · active · done                            |
+| nfr               | draft · active · done                            |
+| adr               | proposed · accepted · deprecated · superseded    |
+| arch              | draft · active · done                            |
+| tech-spec         | draft · active · done                            |
+| db-table          | draft · active · done                            |
+| cicd              | draft · active · done                            |
+| auth-spec         | draft · active · done                            |
+| sprint            | planned · active · done                          |
+| release           | draft · active · released                        |
+| member            | active · draft                                   |
+
+---
+
+## Required body sections per type
+
+### epic
+\`\`\`markdown
+## Description
+Describe the goal and scope of this epic.
+
+## Acceptance Criteria
+- [ ] …
+
+## Notes
+…
+\`\`\`
+
+### story
+\`\`\`markdown
+## Description
+As a [role], I can [action] so that [benefit].
+
+## Acceptance Criteria
+- [ ] …
+
+## Notes
+…
+\`\`\`
+
+### task
+\`\`\`markdown
+## Description
+…
+
+## Subtasks
+- [ ] …
+
+## Notes
+…
+\`\`\`
+
+### bug
+\`\`\`markdown
+## Description
+…
+
+## Steps to Reproduce
+1. …
+
+## Expected Behavior
+…
+
+## Actual Behavior
+…
+
+## Notes
+…
+\`\`\`
+
+### fr (Functional Requirement)
+\`\`\`markdown
+## Description
+The system shall …
+
+## Acceptance Criteria
+- [ ] …
+
+## Linked Items
+<!-- linkedIds set in front matter -->
+\`\`\`
+
+### nfr (Non-Functional Requirement)
+\`\`\`markdown
+## Description
+…
+
+## Metric
+- Target: …
+- Measurement: …
+
+## Linked Items
+<!-- linkedIds set in front matter -->
+\`\`\`
+
+### sprint
+\`\`\`markdown
+## Goal
+…
+
+## Stories
+- US-NNN …
+\`\`\`
+
+### release
+\`\`\`markdown
+## Overview
+…
+
+## What's Included
+- …
+
+## Release Notes
+- …
+\`\`\`
+
+### adr (Architecture Decision Record)
+\`\`\`markdown
+## Context
+…
+
+## Decision
+…
+
+## Consequences
+### Positive
+- …
+### Negative
+- …
+
+## Alternatives Considered
+- Option — reason rejected
+\`\`\`
+
+### arch (Architecture Doc)
+\`\`\`markdown
+## Overview
+…
+
+## Diagram
+\`\`\`
+ASCII or Mermaid diagram
+\`\`\`
+
+## Components
+- **Name** — description
+
+## Interfaces
+- …
+\`\`\`
+
+### tech-spec (Technical Specification)
+\`\`\`markdown
+## Overview
+…
+
+## API / Interface
+\`\`\`
+HTTP routes or signatures
+\`\`\`
+
+## Implementation Notes
+…
+\`\`\`
+
+### db-table (Database Table)
+\`\`\`markdown
+## Columns
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| id     | uuid | PK, NOT NULL | Primary key |
+
+## Relations
+- columnName → TBL-NNN (type: FK)
+\`\`\`
+
+### cicd
+\`\`\`markdown
+## Overview
+…
+
+## Steps
+1. …
+
+## Configuration
+…
+\`\`\`
+
+### auth-spec (Auth Specification)
+\`\`\`markdown
+## Overview
+…
+
+## Flows
+…
+
+## Security Considerations
+…
+\`\`\`
+
+### member
+\`\`\`markdown
+## Bio
+Name — role description.
+\`\`\`
+
+---
+
+## Rules & constraints
+
+1. **IDs are immutable** — never change an existing \`id\` field.
+2. **Comma-separated fields** (\`linkedIds\`, \`dependsOn\`, \`relations\`) must have NO spaces around commas.
+3. **Dates** must be ISO format \`YYYY-MM-DD\` only.
+4. **title** must always be enclosed in double quotes in the front matter.
+5. **type** must exactly match one of the 15 type values (lowercase, hyphenated).
+6. **epicId** is required on every story; **storyId** is required on every task and bug.
+7. **role** is required on every member.
+8. New files must be validated with \`project-spec_validate-file\` before considering them complete.
+`;
+
+// ---------------------------------------------------------------------------
+// Validation
+// ---------------------------------------------------------------------------
+
+const ID_PREFIXES: Record<ItemType, string> = {
+  epic: "EPIC",
+  story: "US",
+  task: "TASK",
+  bug: "BUG",
+  fr: "FR",
+  nfr: "NFR",
+  adr: "ADR",
+  arch: "ARCH",
+  "tech-spec": "SPEC",
+  sprint: "SPR",
+  release: "REL",
+  "db-table": "TBL",
+  cicd: "CICD",
+  "auth-spec": "AUTH",
+  member: "MBR",
+};
+
+const VALID_STATUSES: Record<ItemType, ItemStatus[]> = {
+  epic: ["draft", "active", "done"],
+  story: ["draft", "active", "done"],
+  task: ["todo", "in-progress", "testing", "blocked", "done"],
+  bug: ["todo", "in-progress", "testing", "blocked", "done"],
+  fr: ["draft", "active", "done"],
+  nfr: ["draft", "active", "done"],
+  adr: ["proposed", "accepted", "deprecated", "superseded"],
+  arch: ["draft", "active", "done"],
+  "tech-spec": ["draft", "active", "done"],
+  "db-table": ["draft", "active", "done"],
+  cicd: ["draft", "active", "done"],
+  "auth-spec": ["draft", "active", "done"],
+  sprint: ["planned", "active", "done"],
+  release: ["draft", "active", "released"],
+  member: ["active", "draft"],
+};
+
+const ALL_TYPES: ItemType[] = [
+  "epic",
+  "story",
+  "task",
+  "bug",
+  "fr",
+  "nfr",
+  "adr",
+  "arch",
+  "tech-spec",
+  "db-table",
+  "cicd",
+  "auth-spec",
+  "sprint",
+  "release",
+  "member",
+];
+
+const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+const COMMA_LIST_RE = /^[A-Z0-9-]+(,[A-Z0-9-]+)*$/;
+
+interface ValidateInput {
+  filePath: string;
+}
+
+function validateSpecFile(filePath: string, workspaceRoot: string): string {
+  const absPath = path.isAbsolute(filePath)
+    ? filePath
+    : path.join(workspaceRoot, filePath);
+
+  if (!fs.existsSync(absPath)) {
+    return `❌ File not found: ${filePath}`;
+  }
+
+  const content = fs.readFileSync(absPath, "utf-8");
+  const { data, body } = parseFrontMatter(content);
+  const errors: string[] = [];
+  const warnings: string[] = [];
+
+  // --- Required common fields ---
+  if (!data.id) {
+    errors.push("Missing required field: id");
+  }
+  if (!data.type) {
+    errors.push("Missing required field: type");
+  }
+  if (!data.title) {
+    errors.push("Missing required field: title");
+  }
+  if (!data.status) {
+    errors.push("Missing required field: status");
+  }
+  if (!data.created) {
+    errors.push("Missing required field: created");
+  }
+
+  // --- type must be a known value ---
+  const type = data.type as ItemType | undefined;
+  if (data.type && !ALL_TYPES.includes(data.type as ItemType)) {
+    errors.push(
+      `Invalid type: "${data.type}". Must be one of: ${ALL_TYPES.join(", ")}`,
+    );
+  }
+
+  if (type && ALL_TYPES.includes(type)) {
+    // --- id prefix ---
+    const expectedPrefix = ID_PREFIXES[type];
+    const idPattern = new RegExp(`^${expectedPrefix}-\\d{3}$`);
+    if (data.id && !idPattern.test(data.id)) {
+      errors.push(
+        `Invalid id: "${data.id}". For type "${type}", id must match ${expectedPrefix}-NNN (e.g. ${expectedPrefix}-001)`,
+      );
+    }
+
+    // --- status ---
+    const validStatuses = VALID_STATUSES[type];
+    if (data.status && !validStatuses.includes(data.status as ItemStatus)) {
+      errors.push(
+        `Invalid status: "${data.status}" for type "${type}". Valid values: ${validStatuses.join(", ")}`,
+      );
+    }
+
+    // --- type-specific required relational fields ---
+    if (type === "story" && !data.epicId) {
+      errors.push(
+        "Missing required field: epicId (stories must reference a parent epic)",
+      );
+    }
+    if ((type === "task" || type === "bug") && !data.storyId) {
+      errors.push(
+        `Missing required field: storyId (${type}s must reference a parent story)`,
+      );
+    }
+    if (type === "member" && !data.role) {
+      errors.push("Missing required field: role (members must have a role)");
+    }
+
+    // --- type-specific optional field warnings ---
+    if (
+      (type === "story" || type === "task" || type === "bug") &&
+      !data.priority
+    ) {
+      warnings.push(
+        "Recommended field missing: priority (high | medium | low)",
+      );
+    }
+    if ((type === "task" || type === "bug") && !data.assigneeId) {
+      warnings.push("Recommended field missing: assigneeId");
+    }
+  }
+
+  // --- date format checks ---
+  for (const [field, value] of [
+    ["created", data.created],
+    ["startDate", data.startDate],
+    ["dueDate", data.dueDate],
+    ["releaseDate", data.releaseDate],
+  ] as [string, string | undefined][]) {
+    if (value && !ISO_DATE_RE.test(value)) {
+      errors.push(
+        `Invalid date format for "${field}": "${value}". Must be YYYY-MM-DD`,
+      );
+    }
+  }
+
+  // --- comma-separated field format checks ---
+  for (const [field, value] of [
+    ["linkedIds", data.linkedIds],
+    ["dependsOn", data.dependsOn],
+  ] as [string, string | undefined][]) {
+    if (value && !COMMA_LIST_RE.test(value)) {
+      errors.push(
+        `Invalid format for "${field}": "${value}". Must be comma-separated IDs with no spaces (e.g. US-001,US-002)`,
+      );
+    }
+  }
+
+  // --- body not empty ---
+  if (!body.trim()) {
+    warnings.push(
+      "Body is empty — add the required sections for this document type",
+    );
+  }
+
+  // --- build report ---
+  const lines: string[] = [`## Validation report: ${path.basename(absPath)}\n`];
+  if (errors.length === 0 && warnings.length === 0) {
+    lines.push("✅ All checks passed — document structure is valid.");
+  } else {
+    if (errors.length > 0) {
+      lines.push(`### ❌ Errors (${errors.length})\n`);
+      for (const e of errors) {
+        lines.push(`- ${e}`);
+      }
+      lines.push("");
+    }
+    if (warnings.length > 0) {
+      lines.push(`### ⚠️ Warnings (${warnings.length})\n`);
+      for (const w of warnings) {
+        lines.push(`- ${w}`);
+      }
+    }
+  }
+  return lines.join("\n");
+}
+
+// ---------------------------------------------------------------------------
 // Register the language model tool
 // ---------------------------------------------------------------------------
 
@@ -129,6 +634,40 @@ export function registerSpecTool(
         const content = buildSpecContent(provider.getAllItems());
         return new vscode.LanguageModelToolResult([
           new vscode.LanguageModelTextPart(content),
+        ]);
+      },
+    }),
+  );
+
+  // Schema / instructions tool
+  context.subscriptions.push(
+    vscode.lm.registerTool("project-spec_get-schema", {
+      invoke(_options, _token) {
+        return new vscode.LanguageModelToolResult([
+          new vscode.LanguageModelTextPart(SPEC_SCHEMA),
+        ]);
+      },
+    }),
+  );
+
+  // Validation tool
+  context.subscriptions.push(
+    vscode.lm.registerTool("project-spec_validate-file", {
+      invoke(options, _token) {
+        const input = options.input as ValidateInput;
+        const workspaceRoot =
+          vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? "";
+        const filePath = input?.filePath ?? "";
+        if (!filePath) {
+          return new vscode.LanguageModelToolResult([
+            new vscode.LanguageModelTextPart(
+              "❌ No filePath provided. Pass the workspace-relative path to the spec file.",
+            ),
+          ]);
+        }
+        const report = validateSpecFile(filePath, workspaceRoot);
+        return new vscode.LanguageModelToolResult([
+          new vscode.LanguageModelTextPart(report),
         ]);
       },
     }),

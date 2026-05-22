@@ -2,7 +2,7 @@
   "name": "project-spec",
   "displayName": "Project Spec",
   "description": "Project planning extension: requirements, epics, user stories, tasks, ADRs, and architecture docs",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "icon": "resources/icon.png",
   "license": "Elastic-2.0",
   "engines": {
@@ -445,6 +445,36 @@
         "inputSchema": {
           "type": "object",
           "properties": {}
+        }
+      },
+      {
+        "name": "project-spec_get-schema",
+        "displayName": "Get Spec Document Schema",
+        "modelDescription": "Returns the complete schema and authoring guide for all Project Spec document types (epic, story, task, bug, fr, nfr, sprint, release, adr, arch, tech-spec, db-table, cicd, auth-spec, member). Call this BEFORE creating or editing any .spec file to understand the required front-matter fields, valid status values, ID naming conventions, directory locations, and expected body sections.",
+        "canBeReferencedInPrompt": true,
+        "icon": "$(book)",
+        "inputSchema": {
+          "type": "object",
+          "properties": {}
+        }
+      },
+      {
+        "name": "project-spec_validate-file",
+        "displayName": "Validate Spec File",
+        "modelDescription": "Validates the structure of a .spec markdown file. Checks required front-matter fields, correct ID prefix and format, valid status values, type-specific required relations (epicId on stories, storyId on tasks/bugs), ISO date formats, and comma-separated list syntax. Returns a report with errors and warnings. Call this after creating or editing any .spec file.",
+        "canBeReferencedInPrompt": true,
+        "icon": "$(check-all)",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "filePath": {
+              "type": "string",
+              "description": "Workspace-relative path to the .spec markdown file to validate (e.g. .spec/backlog/epics/epic-003.md)"
+            }
+          },
+          "required": [
+            "filePath"
+          ]
         }
       }
     ]
