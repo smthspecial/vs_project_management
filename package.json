@@ -3,6 +3,7 @@
   "displayName": "Project Spec",
   "description": "Project planning extension: requirements, epics, user stories, tasks, ADRs, and architecture docs",
   "version": "0.0.1",
+  "icon": "resources/icon.png",
   "license": "Elastic-2.0",
   "engines": {
     "vscode": "^1.120.0"
@@ -13,6 +14,11 @@
   "activationEvents": [
     "onStartupFinished"
   ],
+  "publisher": "Venti80",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/smthspecial/vs_project_management"
+  },
   "main": "./dist/extension.js",
   "contributes": {
     "viewsContainers": {
@@ -472,11 +478,5 @@
     "react-dom": "^19.2.6",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.56.1"
-  },
-  "publisher": "Venti80",
-  "icon": "resources/icon.png",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/smthspecial/vs_project_management"
   }
 }
