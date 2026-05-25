@@ -197,6 +197,24 @@
         "category": "Project Spec"
       },
       {
+        "command": "project-spec.newCicd",
+        "title": "New CI/CD Pipeline Doc",
+        "icon": "$(add)",
+        "category": "Project Spec"
+      },
+      {
+        "command": "project-spec.newAuthSpec",
+        "title": "New Auth Specification",
+        "icon": "$(add)",
+        "category": "Project Spec"
+      },
+      {
+        "command": "project-spec.newMember",
+        "title": "New Team Member",
+        "icon": "$(add)",
+        "category": "Project Spec"
+      },
+      {
         "command": "project-spec.openBoard",
         "title": "Open Board View",
         "icon": "$(project)",
@@ -242,6 +260,12 @@
         "command": "project-spec.syncOpenPR",
         "title": "Open Pull Request",
         "icon": "$(git-pull-request)",
+        "category": "Project Spec"
+      },
+      {
+        "command": "project-spec.initCopilotInstructions",
+        "title": "Initialize Copilot Instructions",
+        "icon": "$(sparkle)",
         "category": "Project Spec"
       }
     ],
@@ -327,6 +351,11 @@
           "group": "navigation@1"
         },
         {
+          "command": "project-spec.newMember",
+          "when": "view == projectSpecTeamTree",
+          "group": "navigation@1"
+        },
+        {
           "command": "project-spec.refresh",
           "when": "view =~ /^projectSpec.*Tree$/",
           "group": "navigation@9"
@@ -355,7 +384,7 @@
         },
         {
           "command": "project-spec.newArch",
-          "when": "view =~ /^projectSpec.*Tree$/ && viewItem == group-arch",
+          "when": "view =~ /^projectSpec.*Tree$/ && viewItem == group-arch-docs",
           "group": "inline@1"
         },
         {
@@ -390,7 +419,7 @@
         },
         {
           "command": "project-spec.changeStatus",
-          "when": "view =~ /^projectSpec.*Tree$/ && viewItem =~ /^(epic|story|task|bug|fr|nfr|adr|arch|tech-spec|sprint|release)$/",
+          "when": "view =~ /^projectSpec.*Tree$/ && viewItem =~ /^(epic|story|task|bug|fr|nfr|adr|arch|tech-spec|sprint|release|cicd|auth-spec|member)$/",
           "group": "1_actions@1"
         },
         {
@@ -425,12 +454,27 @@
         },
         {
           "command": "project-spec.deleteItem",
-          "when": "view =~ /^projectSpec.*Tree$/ && viewItem =~ /^(epic|story|task|bug|fr|nfr|adr|arch|tech-spec|sprint|release|db-table)$/",
+          "when": "view =~ /^projectSpec.*Tree$/ && viewItem =~ /^(epic|story|task|bug|fr|nfr|adr|arch|tech-spec|sprint|release|db-table|cicd|auth-spec|member)$/",
           "group": "9_delete@1"
         },
         {
           "command": "project-spec.newTable",
           "when": "view =~ /^projectSpec.*Tree$/ && viewItem == group-database",
+          "group": "inline@1"
+        },
+        {
+          "command": "project-spec.newCicd",
+          "when": "view =~ /^projectSpec.*Tree$/ && viewItem == group-cicd",
+          "group": "inline@1"
+        },
+        {
+          "command": "project-spec.newAuthSpec",
+          "when": "view =~ /^projectSpec.*Tree$/ && viewItem == group-auth-spec",
+          "group": "inline@1"
+        },
+        {
+          "command": "project-spec.newMember",
+          "when": "view =~ /^projectSpec.*Tree$/ && viewItem == group-team",
           "group": "inline@1"
         }
       ]
@@ -438,10 +482,17 @@
     "languageModelTools": [
       {
         "name": "project-spec_read-spec",
+        "toolReferenceName": "project-spec_read-spec",
         "displayName": "Read Project Spec",
         "modelDescription": "Returns the full project specification: requirements, epics, user stories, tasks, bugs, sprints, releases, ADRs, architecture docs, database schema, and team members.",
         "canBeReferencedInPrompt": true,
         "icon": "$(project)",
+        "tags": [
+          "project-spec",
+          "planning",
+          "read",
+          "specification"
+        ],
         "inputSchema": {
           "type": "object",
           "properties": {}
@@ -449,10 +500,16 @@
       },
       {
         "name": "project-spec_get-schema",
+        "toolReferenceName": "project-spec_get-schema",
         "displayName": "Get Spec Document Schema",
         "modelDescription": "Returns the complete schema and authoring guide for all Project Spec document types (epic, story, task, bug, fr, nfr, sprint, release, adr, arch, tech-spec, db-table, cicd, auth-spec, member). Call this BEFORE creating or editing any .spec file to understand the required front-matter fields, valid status values, ID naming conventions, directory locations, and expected body sections.",
         "canBeReferencedInPrompt": true,
         "icon": "$(book)",
+        "tags": [
+          "project-spec",
+          "schema",
+          "documentation"
+        ],
         "inputSchema": {
           "type": "object",
           "properties": {}
@@ -460,10 +517,16 @@
       },
       {
         "name": "project-spec_validate-file",
+        "toolReferenceName": "project-spec_validate-file",
         "displayName": "Validate Spec File",
         "modelDescription": "Validates the structure of a .spec markdown file. Checks required front-matter fields, correct ID prefix and format, valid status values, type-specific required relations (epicId on stories, storyId on tasks/bugs), ISO date formats, and comma-separated list syntax. Returns a report with errors and warnings. Call this after creating or editing any .spec file.",
         "canBeReferencedInPrompt": true,
         "icon": "$(check-all)",
+        "tags": [
+          "project-spec",
+          "validate",
+          "lint"
+        ],
         "inputSchema": {
           "type": "object",
           "properties": {
@@ -474,6 +537,64 @@
           },
           "required": [
             "filePath"
+          ]
+        }
+      },
+      {
+        "name": "project-spec_query",
+        "toolReferenceName": "project-spec_query",
+        "displayName": "Query Spec Items",
+        "modelDescription": "Returns spec items filtered by type and/or status. Use this for focused access — e.g. all active epics, all deprecated requirements. Faster than reading the full spec when you only need a subset.",
+        "canBeReferencedInPrompt": true,
+        "icon": "$(search)",
+        "tags": [
+          "project-spec",
+          "query",
+          "filter",
+          "planning"
+        ],
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "description": "Comma-separated list of types to include (e.g. 'fr,nfr' or 'epic'). Omit to include all types."
+            },
+            "status": {
+              "type": "string",
+              "description": "Comma-separated list of statuses to include (e.g. 'active' or 'draft,active'). Omit to include all statuses."
+            }
+          }
+        }
+      },
+      {
+        "name": "project-spec_write-file",
+        "toolReferenceName": "project-spec_write-file",
+        "displayName": "Write Spec File",
+        "modelDescription": "Creates or overwrites a .spec markdown file with the given content. Use this to create new spec items or update existing ones. The filePath must be inside the .spec/ directory. Always call project-spec_get-schema first to get the correct front-matter fields and directory layout, then call project-spec_validate-file after writing to confirm the file is valid.",
+        "canBeReferencedInPrompt": true,
+        "icon": "$(edit)",
+        "tags": [
+          "project-spec",
+          "write",
+          "create",
+          "specification"
+        ],
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "filePath": {
+              "type": "string",
+              "description": "Workspace-relative path for the file (e.g. .spec/backlog/epics/epic-004.md)"
+            },
+            "content": {
+              "type": "string",
+              "description": "Full markdown content of the spec file including YAML front matter"
+            }
+          },
+          "required": [
+            "filePath",
+            "content"
           ]
         }
       }

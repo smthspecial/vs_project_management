@@ -79,16 +79,20 @@ export const TASK_STATUSES: ItemStatus[] = [
   "blocked",
   "done",
 ];
-export const FR_NFR_STATUSES: ItemStatus[] = ["draft", "active", "done"];
+export const FR_NFR_STATUSES: ItemStatus[] = ["draft", "active", "deprecated"];
 export const ADR_STATUSES: ItemStatus[] = [
   "proposed",
   "accepted",
   "deprecated",
   "superseded",
 ];
-export const TECH_STATUSES: ItemStatus[] = ["draft", "active", "done"];
+export const TECH_STATUSES: ItemStatus[] = ["draft", "active", "deprecated"];
 export const SPRINT_STATUSES: ItemStatus[] = ["planned", "active", "done"];
 export const RELEASE_STATUSES: ItemStatus[] = ["draft", "active", "released"];
 export const MEMBER_STATUSES: ItemStatus[] = ["active", "draft"];
-export const CICD_STATUSES: ItemStatus[] = ["draft", "active", "done"];
-export const AUTH_SPEC_STATUSES: ItemStatus[] = ["draft", "active", "done"];
+export const CICD_STATUSES: ItemStatus[] = ["draft", "active", "deprecated"];
+export const AUTH_SPEC_STATUSES: ItemStatus[] = [
+  "draft",
+  "active",
+  "deprecated",
+];

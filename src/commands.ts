@@ -20,6 +20,9 @@ import {
   FR_NFR_STATUSES,
   ADR_STATUSES,
   TECH_STATUSES,
+  CICD_STATUSES,
+  AUTH_SPEC_STATUSES,
+  MEMBER_STATUSES,
   SPRINT_STATUSES,
   RELEASE_STATUSES,
 } from "./models";
@@ -296,7 +299,13 @@ async function changeStatus(
                 ? SPRINT_STATUSES
                 : type === "release"
                   ? RELEASE_STATUSES
-                  : TECH_STATUSES;
+                  : type === "member"
+                    ? MEMBER_STATUSES
+                    : type === "cicd"
+                      ? CICD_STATUSES
+                      : type === "auth-spec"
+                        ? AUTH_SPEC_STATUSES
+                        : TECH_STATUSES;
 
   const pick = await vscode.window.showQuickPick(
     statusList.map((s) => ({
@@ -313,6 +322,16 @@ async function changeStatus(
   const content = fs.readFileSync(node.spec.filePath, "utf-8");
   const { data: fmData, body: fmBody } = parseFrontMatter(content);
   fmData.status = newStatus;
+
+  // Append "(deprecated)" to title when marking as deprecated
+  if (
+    newStatus === "deprecated" &&
+    fmData.title &&
+    !fmData.title.endsWith(" (deprecated)")
+  ) {
+    fmData.title = `${fmData.title} (deprecated)`;
+  }
+
   const updated = buildFrontMatter(fmData as SpecFrontMatter) + fmBody;
   fs.writeFileSync(node.spec.filePath, updated, "utf-8");
 
@@ -884,6 +903,150 @@ async function createTable(
 }
 
 // ---------------------------------------------------------------------------
+// CI/CD
+// ---------------------------------------------------------------------------
+
+async function createCicd(
+  provider: SpecTreeDataProvider,
+  getRootPath: () => string | undefined,
+): Promise<void> {
+  const rootPath = await requireRootPath(getRootPath);
+  if (!rootPath) {
+    return;
+  }
+
+  const title = await vscode.window.showInputBox({
+    prompt: "CI/CD pipeline title",
+    placeHolder: "e.g. Continuous Integration, Deployment Pipeline",
+    validateInput: (v) => (v.trim() ? null : "Title cannot be empty"),
+  });
+  if (!title) {
+    return;
+  }
+
+  const id = generateId(provider.getAllItems(), "cicd");
+  const dir = getTypeDir(rootPath, "cicd");
+  ensureDir(dir);
+  const filePath = path.join(dir, `${id.toLowerCase()}.md`);
+
+  const frontMatter = buildFrontMatter({
+    id,
+    type: "cicd",
+    title: title.trim(),
+    status: "draft",
+    created: today(),
+  });
+
+  const body =
+    `## Overview\n\nDescribe this pipeline.\n\n` +
+    `## Stages\n\n1. \n\n` +
+    `## Triggers\n\n- \n\n` +
+    `## Notifications\n\n- \n`;
+
+  fs.writeFileSync(filePath, frontMatter + body, "utf-8");
+  provider.refresh();
+  await openFile(filePath);
+}
+
+// ---------------------------------------------------------------------------
+// Auth Spec
+// ---------------------------------------------------------------------------
+
+async function createAuthSpec(
+  provider: SpecTreeDataProvider,
+  getRootPath: () => string | undefined,
+): Promise<void> {
+  const rootPath = await requireRootPath(getRootPath);
+  if (!rootPath) {
+    return;
+  }
+
+  const title = await vscode.window.showInputBox({
+    prompt: "Auth specification title",
+    placeHolder: "e.g. Roles & Authorization Model, OAuth2 Flow",
+    validateInput: (v) => (v.trim() ? null : "Title cannot be empty"),
+  });
+  if (!title) {
+    return;
+  }
+
+  const id = generateId(provider.getAllItems(), "auth-spec");
+  const dir = getTypeDir(rootPath, "auth-spec");
+  ensureDir(dir);
+  const filePath = path.join(dir, `${id.toLowerCase()}.md`);
+
+  const frontMatter = buildFrontMatter({
+    id,
+    type: "auth-spec",
+    title: title.trim(),
+    status: "draft",
+    created: today(),
+  });
+
+  const body =
+    `## Overview\n\nDescribe the authentication or authorization design.\n\n` +
+    `## Roles\n\n| Role | Description |\n|------|-------------|\n| | |\n\n` +
+    `## Authorization Matrix\n\n| Resource | Role |\n|----------|------|\n| | |\n\n` +
+    `## Enforcement\n\n- \n`;
+
+  fs.writeFileSync(filePath, frontMatter + body, "utf-8");
+  provider.refresh();
+  await openFile(filePath);
+}
+
+// ---------------------------------------------------------------------------
+// Team Members
+// ---------------------------------------------------------------------------
+
+async function createMember(
+  provider: SpecTreeDataProvider,
+  getRootPath: () => string | undefined,
+): Promise<void> {
+  const rootPath = await requireRootPath(getRootPath);
+  if (!rootPath) {
+    return;
+  }
+
+  const title = await vscode.window.showInputBox({
+    prompt: "Team member full name",
+    placeHolder: "e.g. Jane Smith",
+    validateInput: (v) => (v.trim() ? null : "Name cannot be empty"),
+  });
+  if (!title) {
+    return;
+  }
+
+  const role = await vscode.window.showInputBox({
+    prompt: "Role",
+    placeHolder: "e.g. frontend, backend, devops, qa, pm",
+    validateInput: (v) => (v.trim() ? null : "Role cannot be empty"),
+  });
+  if (!role) {
+    return;
+  }
+
+  const id = generateId(provider.getAllItems(), "member");
+  const dir = getTypeDir(rootPath, "member");
+  ensureDir(dir);
+  const filePath = path.join(dir, `${id.toLowerCase()}.md`);
+
+  const frontMatter = buildFrontMatter({
+    id,
+    type: "member",
+    title: title.trim(),
+    status: "active",
+    role: role.trim(),
+    created: today(),
+  });
+
+  const body = `## Bio\n\n${title.trim()} — ${role.trim()} engineer.\n`;
+
+  fs.writeFileSync(filePath, frontMatter + body, "utf-8");
+  provider.refresh();
+  await openFile(filePath);
+}
+
+// ---------------------------------------------------------------------------
 // Sprint / Release contents
 // ---------------------------------------------------------------------------
 
@@ -1236,6 +1399,18 @@ export function registerCommands(
 
     vscode.commands.registerCommand("project-spec.newTable", () =>
       createTable(provider, getRootPath),
+    ),
+
+    vscode.commands.registerCommand("project-spec.newCicd", () =>
+      createCicd(provider, getRootPath),
+    ),
+
+    vscode.commands.registerCommand("project-spec.newAuthSpec", () =>
+      createAuthSpec(provider, getRootPath),
+    ),
+
+    vscode.commands.registerCommand("project-spec.newMember", () =>
+      createMember(provider, getRootPath),
     ),
 
     vscode.commands.registerCommand(

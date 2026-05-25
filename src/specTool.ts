@@ -194,14 +194,14 @@ relations: userId:TBL-001,orderId:TBL-002   # db-table — FK relations
 | story             | draft · active · done                            |
 | task              | todo · in-progress · testing · blocked · done    |
 | bug               | todo · in-progress · testing · blocked · done    |
-| fr                | draft · active · done                            |
-| nfr               | draft · active · done                            |
+| fr                | draft · active · deprecated                      |
+| nfr               | draft · active · deprecated                      |
 | adr               | proposed · accepted · deprecated · superseded    |
-| arch              | draft · active · done                            |
-| tech-spec         | draft · active · done                            |
+| arch              | draft · active · deprecated                      |
+| tech-spec         | draft · active · deprecated                      |
 | db-table          | draft · active · done                            |
-| cicd              | draft · active · done                            |
-| auth-spec         | draft · active · done                            |
+| cicd              | draft · active · deprecated                      |
+| auth-spec         | draft · active · deprecated                      |
 | sprint            | planned · active · done                          |
 | release           | draft · active · released                        |
 | member            | active · draft                                   |
@@ -441,14 +441,14 @@ const VALID_STATUSES: Record<ItemType, ItemStatus[]> = {
   story: ["draft", "active", "done"],
   task: ["todo", "in-progress", "testing", "blocked", "done"],
   bug: ["todo", "in-progress", "testing", "blocked", "done"],
-  fr: ["draft", "active", "done"],
-  nfr: ["draft", "active", "done"],
+  fr: ["draft", "active", "deprecated"],
+  nfr: ["draft", "active", "deprecated"],
   adr: ["proposed", "accepted", "deprecated", "superseded"],
-  arch: ["draft", "active", "done"],
-  "tech-spec": ["draft", "active", "done"],
+  arch: ["draft", "active", "deprecated"],
+  "tech-spec": ["draft", "active", "deprecated"],
   "db-table": ["draft", "active", "done"],
-  cicd: ["draft", "active", "done"],
-  "auth-spec": ["draft", "active", "done"],
+  cicd: ["draft", "active", "deprecated"],
+  "auth-spec": ["draft", "active", "deprecated"],
   sprint: ["planned", "active", "done"],
   release: ["draft", "active", "released"],
   member: ["active", "draft"],
@@ -621,6 +621,67 @@ function validateSpecFile(filePath: string, workspaceRoot: string): string {
 }
 
 // ---------------------------------------------------------------------------
+// Query — filter items by type and/or status
+// ---------------------------------------------------------------------------
+
+interface QueryInput {
+  type?: string;
+  status?: string;
+}
+
+function buildQueryContent(items: SpecItem[], input: QueryInput): string {
+  let filtered = items;
+  if (input.type) {
+    const types = input.type.split(",").map((t) => t.trim());
+    filtered = filtered.filter((i) => types.includes(i.data.type));
+  }
+  if (input.status) {
+    const statuses = input.status.split(",").map((s) => s.trim());
+    filtered = filtered.filter((i) => statuses.includes(i.data.status));
+  }
+  if (filtered.length === 0) {
+    return "No items match the given filters.";
+  }
+  return buildSpecContent(filtered);
+}
+
+// ---------------------------------------------------------------------------
+// Write spec file
+// ---------------------------------------------------------------------------
+
+interface WriteFileInput {
+  filePath: string;
+  content: string;
+}
+
+function writeSpecFile(input: WriteFileInput, workspaceRoot: string): string {
+  const { filePath, content } = input;
+  if (!filePath || !content) {
+    return "❌ Both filePath and content are required.";
+  }
+
+  // Ensure the path stays inside .spec/ to prevent writing outside the spec directory
+  const specDir = path.join(workspaceRoot, ".spec");
+  const absPath = path.isAbsolute(filePath)
+    ? filePath
+    : path.join(workspaceRoot, filePath);
+  const resolved = path.resolve(absPath);
+  if (
+    !resolved.startsWith(path.resolve(specDir) + path.sep) &&
+    resolved !== path.resolve(specDir)
+  ) {
+    return `❌ Path must be inside the .spec/ directory. Got: ${filePath}`;
+  }
+
+  const dir = path.dirname(resolved);
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+  fs.writeFileSync(resolved, content, "utf-8");
+  return `✅ File written: ${path.relative(workspaceRoot, resolved)}`;
+}
+
+// ---------------------------------------------------------------------------
 // Register the language model tool
 // ---------------------------------------------------------------------------
 
@@ -668,6 +729,37 @@ export function registerSpecTool(
         const report = validateSpecFile(filePath, workspaceRoot);
         return new vscode.LanguageModelToolResult([
           new vscode.LanguageModelTextPart(report),
+        ]);
+      },
+    }),
+  );
+
+  // Query tool
+  context.subscriptions.push(
+    vscode.lm.registerTool("project-spec_query", {
+      invoke(options, _token) {
+        const input = options.input as QueryInput;
+        const result = buildQueryContent(provider.getAllItems(), input ?? {});
+        return new vscode.LanguageModelToolResult([
+          new vscode.LanguageModelTextPart(result),
+        ]);
+      },
+    }),
+  );
+
+  // Write file tool
+  context.subscriptions.push(
+    vscode.lm.registerTool("project-spec_write-file", {
+      invoke(options, _token) {
+        const input = options.input as WriteFileInput;
+        const workspaceRoot =
+          vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? "";
+        const result = writeSpecFile(input ?? {}, workspaceRoot);
+        if (result.startsWith("✅")) {
+          provider.refresh();
+        }
+        return new vscode.LanguageModelToolResult([
+          new vscode.LanguageModelTextPart(result),
         ]);
       },
     }),
