@@ -367,8 +367,31 @@ HTTP routes or signatures
 | id     | uuid | PK, NOT NULL | Primary key |
 
 ## Relations
-- columnName → TBL-NNN (type: FK)
+- userId → TBL-001 (users) — many-to-one — FK, ON DELETE CASCADE
+- orderId → TBL-005 (orders) — many-to-one — FK, ON DELETE SET NULL
 \`\`\`
+
+**Front-matter \`relations\` field** — encodes every FK column this table owns as
+\`colName:TBL-NNN\` pairs, comma-separated, **no spaces**:
+
+\`\`\`yaml
+relations: userId:TBL-001,orderId:TBL-005
+\`\`\`
+
+**Relation types and how to model them**
+
+| Relationship | How to implement |
+|---|---|
+| One-to-Many (1:N) | Add a FK column (e.g. \`userId uuid FK\`) on the "many" side. Set \`relations: userId:TBL-NNN\` on that table. The "one" side (e.g. users) needs no FK. |
+| Many-to-Many (N:M) | Create a **junction table** (e.g. \`order_items\`). Add FK columns for both sides (e.g. \`orderId\` + \`productId\`). Set \`relations: orderId:TBL-A,productId:TBL-B\` on the junction table. |
+| One-to-One (1:1) | Add a FK column with a UNIQUE constraint on one side. Set \`relations: profileId:TBL-NNN\` on that table. |
+| Self-referential | FK column points to the same table (e.g. \`parentId uuid FK → this table\`). Set \`relations: parentId:TBL-NNN\` where NNN is this table's own ID. |
+
+**Rules**
+- Every FK column must appear in both the \`## Columns\` table (marked \`FK\` in Constraints) and in \`relations\` front matter.
+- Always describe the ON DELETE behaviour in the \`## Relations\` body section (CASCADE / SET NULL / RESTRICT).
+- For many-to-many relationships, always create an explicit junction table — do NOT embed arrays in a column.
+- The \`## Relations\` body section is for human-readable documentation; the \`relations\` front-matter field is for machine-readable linking between table documents.
 
 ### cicd
 \`\`\`markdown

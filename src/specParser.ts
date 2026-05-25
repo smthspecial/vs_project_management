@@ -242,7 +242,15 @@ export function generateId(items: SpecItem[], type: ItemType): string {
                         ? "REL"
                         : type === "db-table"
                           ? "TBL"
-                          : "SPEC";
+                          : type === "tech-spec"
+                            ? "TSPEC"
+                            : type === "cicd"
+                              ? "CICD"
+                              : type === "auth-spec"
+                                ? "AUTH"
+                                : type === "member"
+                                  ? "MBR"
+                                  : "SPEC";
 
   const existing = items
     .filter((i) => i.data.type === type)
