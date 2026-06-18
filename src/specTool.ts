@@ -457,6 +457,7 @@ const ID_PREFIXES: Record<ItemType, string> = {
   cicd: "CICD",
   "auth-spec": "AUTH",
   member: "MBR",
+  concept: "CON",
 };
 
 const VALID_STATUSES: Record<ItemType, ItemStatus[]> = {
@@ -475,6 +476,7 @@ const VALID_STATUSES: Record<ItemType, ItemStatus[]> = {
   sprint: ["planned", "active", "done"],
   release: ["draft", "active", "released"],
   member: ["active", "draft"],
+  concept: ["draft", "active", "deprecated"],
 };
 
 const ALL_TYPES: ItemType[] = [

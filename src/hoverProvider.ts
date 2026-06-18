@@ -486,6 +486,19 @@ const TYPE_DOCS: Record<ItemType, string> = {
     "",
     "**Appears in:** Team tree",
   ].join("\n"),
+
+  concept: [
+    "## Concept Document",
+    "**View:** Concept  |  **ID:** `CON-NNN`",
+    "",
+    "A document in one of the concept sections: History & Problem, Goals, Core Principles, Risks & Obstacles, System Design, or System Implementation.",
+    "",
+    "**Required fields:** `id`, `type`, `title`, `status`, `created`",
+    "",
+    "**Valid statuses:** `draft` · `active` · `deprecated`",
+    "",
+    "**Appears in:** Concept tree",
+  ].join("\n"),
 };
 
 // ---------------------------------------------------------------------------

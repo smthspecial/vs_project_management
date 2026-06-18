@@ -22,6 +22,7 @@ const TYPE_ICON: Record<string, string> = {
   member: "account",
   cicd: "settings-gear",
   "auth-spec": "shield",
+  concept: "note",
 };
 
 const STATUS_BADGE: Record<string, string> = {
@@ -93,6 +94,10 @@ export class TreeGroupItem extends vscode.TreeItem {
 }
 
 export type AnyTreeItem = SpecTreeItem | TreeGroupItem;
+
+function inConceptSection(filePath: string, section: string): boolean {
+  return filePath.replace(/\\/g, "/").includes(`/concept/${section}/`);
+}
 
 // ---------------------------------------------------------------------------
 // Tree data provider
@@ -168,6 +173,7 @@ export class SpecTreeDataProvider implements vscode.TreeDataProvider<AnyTreeItem
       "auth-spec": "projectSpecTechnicalTree",
       "db-table": "projectSpecDatabaseTree",
       member: "projectSpecTeamTree",
+      concept: "projectSpecConceptTree",
     };
     return TYPE_TO_VIEW[item.data.type];
   }
@@ -325,6 +331,45 @@ export class SpecTreeDataProvider implements vscode.TreeDataProvider<AnyTreeItem
           .map(
             (i) => new SpecTreeItem(i, vscode.TreeItemCollapsibleState.None),
           );
+      case "concept":
+        return [
+          new TreeGroupItem("concept-history", "History & Problem", "history"),
+          new TreeGroupItem("concept-goals", "Goals", "target"),
+          new TreeGroupItem("concept-principles", "Core Principles", "book"),
+          new TreeGroupItem("concept-risks", "Risks & Obstacles", "warning"),
+          new TreeGroupItem("concept-sysdesign", "System Design", "layout"),
+          new TreeGroupItem("concept-sysimpl", "System Implementation", "wrench"),
+        ];
+      case "concept-history":
+        return this.items
+          .filter((i) => i.data.type === "concept" && inConceptSection(i.filePath, "history"))
+          .sort((a, b) => a.data.id.localeCompare(b.data.id))
+          .map((i) => new SpecTreeItem(i, vscode.TreeItemCollapsibleState.None));
+      case "concept-goals":
+        return this.items
+          .filter((i) => i.data.type === "concept" && inConceptSection(i.filePath, "goals"))
+          .sort((a, b) => a.data.id.localeCompare(b.data.id))
+          .map((i) => new SpecTreeItem(i, vscode.TreeItemCollapsibleState.None));
+      case "concept-principles":
+        return this.items
+          .filter((i) => i.data.type === "concept" && inConceptSection(i.filePath, "principles"))
+          .sort((a, b) => a.data.id.localeCompare(b.data.id))
+          .map((i) => new SpecTreeItem(i, vscode.TreeItemCollapsibleState.None));
+      case "concept-risks":
+        return this.items
+          .filter((i) => i.data.type === "concept" && inConceptSection(i.filePath, "risks"))
+          .sort((a, b) => a.data.id.localeCompare(b.data.id))
+          .map((i) => new SpecTreeItem(i, vscode.TreeItemCollapsibleState.None));
+      case "concept-sysdesign":
+        return this.items
+          .filter((i) => i.data.type === "concept" && inConceptSection(i.filePath, "sysdesign"))
+          .sort((a, b) => a.data.id.localeCompare(b.data.id))
+          .map((i) => new SpecTreeItem(i, vscode.TreeItemCollapsibleState.None));
+      case "concept-sysimpl":
+        return this.items
+          .filter((i) => i.data.type === "concept" && inConceptSection(i.filePath, "sysimpl"))
+          .sort((a, b) => a.data.id.localeCompare(b.data.id))
+          .map((i) => new SpecTreeItem(i, vscode.TreeItemCollapsibleState.None));
       default:
         return [];
     }
@@ -535,6 +580,33 @@ export class SectionTreeAdapter implements vscode.TreeDataProvider<AnyTreeItem> 
           );
         }
         break;
+
+      case "concept": {
+        const { type: cType } = element.spec.data;
+        if (cType !== "concept") {
+          break;
+        }
+        const fp = element.spec.filePath;
+        if (inConceptSection(fp, "history")) {
+          return new TreeGroupItem("concept-history", "History & Problem", "history");
+        }
+        if (inConceptSection(fp, "goals")) {
+          return new TreeGroupItem("concept-goals", "Goals", "target");
+        }
+        if (inConceptSection(fp, "principles")) {
+          return new TreeGroupItem("concept-principles", "Core Principles", "book");
+        }
+        if (inConceptSection(fp, "risks")) {
+          return new TreeGroupItem("concept-risks", "Risks & Obstacles", "warning");
+        }
+        if (inConceptSection(fp, "sysdesign")) {
+          return new TreeGroupItem("concept-sysdesign", "System Design", "layout");
+        }
+        if (inConceptSection(fp, "sysimpl")) {
+          return new TreeGroupItem("concept-sysimpl", "System Implementation", "wrench");
+        }
+        break;
+      }
 
       // "database" and "team": items sit at root level, no parent
     }

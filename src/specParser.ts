@@ -196,6 +196,12 @@ export function readAllSpecItems(rootPath: string): SpecItem[] {
     "technical/cicd",
     "technical/auth",
     "team/members",
+    "concept/history",
+    "concept/goals",
+    "concept/principles",
+    "concept/risks",
+    "concept/sysdesign",
+    "concept/sysimpl",
   ]) {
     const dirPath = path.join(specDir, subdir);
     if (!fs.existsSync(dirPath)) {
@@ -250,7 +256,9 @@ export function generateId(items: SpecItem[], type: ItemType): string {
                                 ? "AUTH"
                                 : type === "member"
                                   ? "MBR"
-                                  : "SPEC";
+                                  : type === "concept"
+                                    ? "CON"
+                                    : "SPEC";
 
   const existing = items
     .filter((i) => i.data.type === type)

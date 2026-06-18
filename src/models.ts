@@ -29,7 +29,8 @@ export type ItemType =
   | "db-table"
   | "member"
   | "cicd"
-  | "auth-spec";
+  | "auth-spec"
+  | "concept";
 
 export interface SpecFrontMatter {
   id: string;
@@ -96,3 +97,4 @@ export const AUTH_SPEC_STATUSES: ItemStatus[] = [
   "active",
   "deprecated",
 ];
+export const CONCEPT_STATUSES: ItemStatus[] = ["draft", "active", "deprecated"];

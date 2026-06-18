@@ -38,6 +38,7 @@ export function activate(context: vscode.ExtensionContext): void {
     { viewId: "projectSpecTechnicalTree", section: "technical" },
     { viewId: "projectSpecDatabaseTree", section: "database" },
     { viewId: "projectSpecTeamTree", section: "team" },
+    { viewId: "projectSpecConceptTree", section: "concept" },
   ];
 
   const adapters: SectionTreeAdapter[] = sectionDefs.map(

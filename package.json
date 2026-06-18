@@ -66,6 +66,11 @@
           "id": "projectSpecTeamTree",
           "name": "Team",
           "contextualTitle": "Project Spec"
+        },
+        {
+          "id": "projectSpecConceptTree",
+          "name": "Concept",
+          "contextualTitle": "Project Spec"
         }
       ]
     },
@@ -267,6 +272,42 @@
         "title": "Initialize Copilot Instructions",
         "icon": "$(sparkle)",
         "category": "Project Spec"
+      },
+      {
+        "command": "project-spec.newConceptHistory",
+        "title": "New History & Problem Document",
+        "icon": "$(add)",
+        "category": "Project Spec"
+      },
+      {
+        "command": "project-spec.newConceptGoal",
+        "title": "New Goals Document",
+        "icon": "$(add)",
+        "category": "Project Spec"
+      },
+      {
+        "command": "project-spec.newConceptPrinciple",
+        "title": "New Core Principles Document",
+        "icon": "$(add)",
+        "category": "Project Spec"
+      },
+      {
+        "command": "project-spec.newConceptRisk",
+        "title": "New Risks & Obstacles Document",
+        "icon": "$(add)",
+        "category": "Project Spec"
+      },
+      {
+        "command": "project-spec.newConceptSysDesign",
+        "title": "New System Design Document",
+        "icon": "$(add)",
+        "category": "Project Spec"
+      },
+      {
+        "command": "project-spec.newConceptSysImpl",
+        "title": "New System Implementation Document",
+        "icon": "$(add)",
+        "category": "Project Spec"
       }
     ],
     "menus": {
@@ -419,7 +460,7 @@
         },
         {
           "command": "project-spec.changeStatus",
-          "when": "view =~ /^projectSpec.*Tree$/ && viewItem =~ /^(epic|story|task|bug|fr|nfr|adr|arch|tech-spec|sprint|release|cicd|auth-spec|member)$/",
+          "when": "view =~ /^projectSpec.*Tree$/ && viewItem =~ /^(epic|story|task|bug|fr|nfr|adr|arch|tech-spec|sprint|release|cicd|auth-spec|member|concept)$/",
           "group": "1_actions@1"
         },
         {
@@ -454,7 +495,7 @@
         },
         {
           "command": "project-spec.deleteItem",
-          "when": "view =~ /^projectSpec.*Tree$/ && viewItem =~ /^(epic|story|task|bug|fr|nfr|adr|arch|tech-spec|sprint|release|db-table|cicd|auth-spec|member)$/",
+          "when": "view =~ /^projectSpec.*Tree$/ && viewItem =~ /^(epic|story|task|bug|fr|nfr|adr|arch|tech-spec|sprint|release|db-table|cicd|auth-spec|member|concept)$/",
           "group": "9_delete@1"
         },
         {
@@ -476,6 +517,46 @@
           "command": "project-spec.newMember",
           "when": "view =~ /^projectSpec.*Tree$/ && viewItem == group-team",
           "group": "inline@1"
+        },
+        {
+          "command": "project-spec.newConceptHistory",
+          "when": "view =~ /^projectSpec.*Tree$/ && viewItem == group-concept-history",
+          "group": "inline@1"
+        },
+        {
+          "command": "project-spec.newConceptGoal",
+          "when": "view =~ /^projectSpec.*Tree$/ && viewItem == group-concept-goals",
+          "group": "inline@1"
+        },
+        {
+          "command": "project-spec.newConceptPrinciple",
+          "when": "view =~ /^projectSpec.*Tree$/ && viewItem == group-concept-principles",
+          "group": "inline@1"
+        },
+        {
+          "command": "project-spec.newConceptRisk",
+          "when": "view =~ /^projectSpec.*Tree$/ && viewItem == group-concept-risks",
+          "group": "inline@1"
+        },
+        {
+          "command": "project-spec.newConceptSysDesign",
+          "when": "view =~ /^projectSpec.*Tree$/ && viewItem == group-concept-sysdesign",
+          "group": "inline@1"
+        },
+        {
+          "command": "project-spec.newConceptSysImpl",
+          "when": "view =~ /^projectSpec.*Tree$/ && viewItem == group-concept-sysimpl",
+          "group": "inline@1"
+        },
+        {
+          "command": "project-spec.deleteItem",
+          "when": "view == projectSpecConceptTree && viewItem == concept",
+          "group": "9_delete@1"
+        },
+        {
+          "command": "project-spec.changeStatus",
+          "when": "view == projectSpecConceptTree && viewItem == concept",
+          "group": "1_actions@1"
         }
       ]
     },

@@ -25,6 +25,7 @@ import {
   MEMBER_STATUSES,
   SPRINT_STATUSES,
   RELEASE_STATUSES,
+  CONCEPT_STATUSES,
 } from "./models";
 
 // ---------------------------------------------------------------------------
@@ -305,7 +306,9 @@ async function changeStatus(
                       ? CICD_STATUSES
                       : type === "auth-spec"
                         ? AUTH_SPEC_STATUSES
-                        : TECH_STATUSES;
+                        : type === "concept"
+                          ? CONCEPT_STATUSES
+                          : TECH_STATUSES;
 
   const pick = await vscode.window.showQuickPick(
     statusList.map((s) => ({
@@ -1305,6 +1308,88 @@ function checkEpicRollup(
 }
 
 // ---------------------------------------------------------------------------
+// Concept documents
+// ---------------------------------------------------------------------------
+
+const CONCEPT_SECTION_META: Record<
+  string,
+  { label: string; subdir: string; body: string }
+> = {
+  history: {
+    label: "History & Problem",
+    subdir: "concept/history",
+    body: `## Background\n\nDescribe the history and context of the problem.\n\n## Problem Statement\n\n- \n\n## Why It Matters\n\n- \n`,
+  },
+  goals: {
+    label: "Goals",
+    subdir: "concept/goals",
+    body: `## Goals\n\n- \n\n## Non-Goals\n\n- \n\n## Success Criteria\n\n- \n`,
+  },
+  principles: {
+    label: "Core Principles",
+    subdir: "concept/principles",
+    body: `## Principles\n\n- \n\n## Rationale\n\n- \n`,
+  },
+  risks: {
+    label: "Risks & Obstacles",
+    subdir: "concept/risks",
+    body: `## Risks\n\n| Risk | Likelihood | Impact | Mitigation |\n|------|-----------|--------|------------|\n| | | | |\n\n## Obstacles\n\n- \n`,
+  },
+  sysdesign: {
+    label: "System Design",
+    subdir: "concept/sysdesign",
+    body: `## Overview\n\nDescribe the system design.\n\n## Diagram\n\n\`\`\`\n<!-- Add diagram here -->\n\`\`\`\n\n## Components\n\n- \n\n## Data Flow\n\n- \n`,
+  },
+  sysimpl: {
+    label: "System Implementation",
+    subdir: "concept/sysimpl",
+    body: `## Overview\n\nDescribe the implementation approach.\n\n## Steps\n\n1. \n\n## Dependencies\n\n- \n\n## Rollout\n\n- \n`,
+  },
+};
+
+async function createConceptDoc(
+  section: string,
+  provider: SpecTreeDataProvider,
+  getRootPath: () => string | undefined,
+): Promise<void> {
+  const rootPath = await requireRootPath(getRootPath);
+  if (!rootPath) {
+    return;
+  }
+
+  const meta = CONCEPT_SECTION_META[section];
+  if (!meta) {
+    return;
+  }
+
+  const title = await vscode.window.showInputBox({
+    prompt: `${meta.label} document title`,
+    placeHolder: "e.g. Initial problem analysis",
+    validateInput: (v) => (v.trim() ? null : "Title cannot be empty"),
+  });
+  if (!title) {
+    return;
+  }
+
+  const id = generateId(provider.getAllItems(), "concept");
+  const dir = path.join(getSpecDir(rootPath), meta.subdir);
+  ensureDir(dir);
+  const filePath = path.join(dir, `${id.toLowerCase()}.md`);
+
+  const frontMatter = buildFrontMatter({
+    id,
+    type: "concept",
+    title: title.trim(),
+    status: "draft",
+    created: today(),
+  });
+
+  fs.writeFileSync(filePath, frontMatter + meta.body, "utf-8");
+  provider.refresh();
+  await openFile(filePath);
+}
+
+// ---------------------------------------------------------------------------
 // Registration
 // ---------------------------------------------------------------------------
 
@@ -1411,6 +1496,25 @@ export function registerCommands(
 
     vscode.commands.registerCommand("project-spec.newMember", () =>
       createMember(provider, getRootPath),
+    ),
+
+    vscode.commands.registerCommand("project-spec.newConceptHistory", () =>
+      createConceptDoc("history", provider, getRootPath),
+    ),
+    vscode.commands.registerCommand("project-spec.newConceptGoal", () =>
+      createConceptDoc("goals", provider, getRootPath),
+    ),
+    vscode.commands.registerCommand("project-spec.newConceptPrinciple", () =>
+      createConceptDoc("principles", provider, getRootPath),
+    ),
+    vscode.commands.registerCommand("project-spec.newConceptRisk", () =>
+      createConceptDoc("risks", provider, getRootPath),
+    ),
+    vscode.commands.registerCommand("project-spec.newConceptSysDesign", () =>
+      createConceptDoc("sysdesign", provider, getRootPath),
+    ),
+    vscode.commands.registerCommand("project-spec.newConceptSysImpl", () =>
+      createConceptDoc("sysimpl", provider, getRootPath),
     ),
 
     vscode.commands.registerCommand(
