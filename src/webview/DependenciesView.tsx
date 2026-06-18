@@ -21,7 +21,8 @@ const TYPE_COLOR: Record<string, string> = {
   nfr: "#ca8a04",
   adr: "#0891b2",
   arch: "#0f766e",
-  "tech-spec": "#4f46e5",
+  "service": "#4f46e5",
+  "data-proc": "#0891b2",
 };
 
 // ---------------------------------------------------------------------------

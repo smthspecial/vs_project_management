@@ -77,7 +77,7 @@
     "viewsWelcome": [
       {
         "view": "projectSpecBacklogTree",
-        "contents": "No specifications found.\n\nStart planning your project:\n\n[$(add) New Epic](command:project-spec.newEpic)  [$(add) New FR](command:project-spec.newFr)  [$(add) New ADR](command:project-spec.newAdr)\n\nSpec files are stored in a `.spec/` folder at the root of your workspace.\n\nStructure:\n```\n.spec/\n  requirements/fr/   ← Functional Requirements\n  requirements/nfr/  ← Non-Functional Requirements\n  planning/epics/    ← Epics\n  planning/stories/  ← User Stories\n  planning/tasks/    ← Tasks & Bugs\n  technical/adr/     ← Architectural Decisions\n  technical/architecture/ ← Architecture Docs\n  technical/specs/   ← Technical Specifications\n```",
+        "contents": "No specifications found.\n\nStart planning your project:\n\n[$(add) New Epic](command:project-spec.newEpic)  [$(add) New FR](command:project-spec.newFr)  [$(add) New ADR](command:project-spec.newAdr)\n\nSpec files are stored in a `.spec/` folder at the root of your workspace.\n\nStructure:\n```\n.spec/\n  requirements/fr/   ← Functional Requirements\n  requirements/nfr/  ← Non-Functional Requirements\n  planning/epics/    ← Epics\n  planning/stories/  ← User Stories\n  planning/tasks/    ← Tasks & Bugs\n  technical/adr/     ← Architectural Decisions\n  technical/          ← Architecture Docs\n  technical/data-processes/ ← Data Processes\n  technical/services/ ← Services\n```",
         "when": "workbenchState != empty"
       }
     ],
@@ -156,6 +156,12 @@
       {
         "command": "project-spec.newTechSpec",
         "title": "New Technical Specification",
+        "icon": "$(add)",
+        "category": "Project Spec"
+      },
+      {
+        "command": "project-spec.newDataProc",
+        "title": "New Data Process",
         "icon": "$(add)",
         "category": "Project Spec"
       },
@@ -434,6 +440,11 @@
           "group": "inline@1"
         },
         {
+          "command": "project-spec.newDataProc",
+          "when": "view =~ /^projectSpec.*Tree$/ && viewItem == group-data-proc",
+          "group": "inline@1"
+        },
+        {
           "command": "project-spec.newStory",
           "when": "view =~ /^projectSpec.*Tree$/ && viewItem == epic",
           "group": "inline@1"
@@ -460,7 +471,7 @@
         },
         {
           "command": "project-spec.changeStatus",
-          "when": "view =~ /^projectSpec.*Tree$/ && viewItem =~ /^(epic|story|task|bug|fr|nfr|adr|arch|tech-spec|sprint|release|cicd|auth-spec|member|concept)$/",
+          "when": "view =~ /^projectSpec.*Tree$/ && viewItem =~ /^(epic|story|task|bug|fr|nfr|adr|arch|service|data-proc|sprint|release|cicd|auth-spec|member|concept)$/",
           "group": "1_actions@1"
         },
         {
@@ -583,7 +594,7 @@
         "name": "project-spec_get-schema",
         "toolReferenceName": "project-spec_get-schema",
         "displayName": "Get Spec Document Schema",
-        "modelDescription": "Returns the complete schema and authoring guide for all Project Spec document types (epic, story, task, bug, fr, nfr, sprint, release, adr, arch, tech-spec, db-table, cicd, auth-spec, member). Call this BEFORE creating or editing any .spec file to understand the required front-matter fields, valid status values, ID naming conventions, directory locations, and expected body sections.",
+        "modelDescription": "Returns the complete schema and authoring guide for all Project Spec document types (epic, story, task, bug, fr, nfr, sprint, release, adr, arch, service, data-proc, db-table, cicd, auth-spec, member, concept). Call this BEFORE creating or editing any .spec file to understand the required front-matter fields, valid status values, ID naming conventions, directory locations, and expected body sections.",
         "canBeReferencedInPrompt": true,
         "icon": "$(book)",
         "tags": [

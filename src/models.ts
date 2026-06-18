@@ -23,14 +23,15 @@ export type ItemType =
   | "nfr"
   | "adr"
   | "arch"
-  | "tech-spec"
+  | "service"
   | "sprint"
   | "release"
   | "db-table"
   | "member"
   | "cicd"
   | "auth-spec"
-  | "concept";
+  | "concept"
+  | "data-proc";
 
 export interface SpecFrontMatter {
   id: string;
@@ -63,6 +64,8 @@ export interface SpecFrontMatter {
   assigneeId?: string;
   /** Role of a member */
   role?: string;
+  /** Process type for data-proc — sync | async | cron */
+  processType?: "sync" | "async" | "cron";
 }
 
 export interface SpecItem {

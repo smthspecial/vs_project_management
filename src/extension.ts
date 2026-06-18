@@ -436,33 +436,45 @@ Use these tools when working in this workspace:
 3. Write the file with \`project-spec_write-file\` using the workspace-relative path (e.g. \`.spec/backlog/epics/epic-004.md\`).
 4. Call \`project-spec_validate-file\` with the same path to confirm the file is valid.
 
-## Document types and IDs
+## TYPE REGISTRY — the only 17 valid document types
 
-| Type | ID prefix | Directory |
-|------|-----------|-----------|
-| \`fr\` | \`FR-\` | \`.spec/requirements/functional/\` |
-| \`nfr\` | \`NFR-\` | \`.spec/requirements/non-functional/\` |
-| \`epic\` | \`EPIC-\` | \`.spec/backlog/epics/\` |
-| \`story\` | \`US-\` | \`.spec/backlog/stories/\` |
-| \`task\` | \`TASK-\` | \`.spec/backlog/tasks/\` |
-| \`bug\` | \`BUG-\` | \`.spec/backlog/bugs/\` |
-| \`sprint\` | \`SPRINT-\` | \`.spec/sprints-releases/sprints/\` |
-| \`release\` | \`REL-\` | \`.spec/sprints-releases/releases/\` |
-| \`adr\` | \`ADR-\` | \`.spec/technical/adr/\` |
-| \`arch\` | \`ARCH-\` | \`.spec/technical/arch-docs/\` |
-| \`tech-spec\` | \`TECH-\` | \`.spec/technical/tech-specs/\` |
-| \`cicd\` | \`CICD-\` | \`.spec/technical/cicd/\` |
-| \`auth-spec\` | \`AUTH-\` | \`.spec/technical/auth-specs/\` |
-| \`db-table\` | \`DB-\` | \`.spec/database/\` |
-| \`member\` | \`MBR-\` | \`.spec/team/\` |
+The \`type\` field MUST be one of these exact strings. No other values are accepted — never invent types.
+
+| \`type\` | \`id\` prefix | Directory under \`.spec/\` | File name | Valid \`status\` values |
+|--------|-------------|--------------------------|-----------|----------------------|
+| \`epic\` | \`EPIC-NNN\` | \`backlog/epics/\` | \`epic-NNN.md\` | \`draft\` · \`active\` · \`done\` |
+| \`story\` | \`US-NNN\` | \`backlog/stories/\` | \`us-NNN.md\` | \`draft\` · \`active\` · \`done\` |
+| \`task\` | \`TASK-NNN\` | \`backlog/tasks/\` | \`task-NNN.md\` | \`todo\` · \`in-progress\` · \`testing\` · \`blocked\` · \`done\` |
+| \`bug\` | \`BUG-NNN\` | \`backlog/tasks/\` | \`bug-NNN.md\` | \`todo\` · \`in-progress\` · \`testing\` · \`blocked\` · \`done\` |
+| \`fr\` | \`FR-NNN\` | \`requirements/fr/\` | \`fr-NNN.md\` | \`draft\` · \`active\` · \`deprecated\` |
+| \`nfr\` | \`NFR-NNN\` | \`requirements/nfr/\` | \`nfr-NNN.md\` | \`draft\` · \`active\` · \`deprecated\` |
+| \`sprint\` | \`SPR-NNN\` | \`planning/sprints/\` | \`spr-NNN.md\` | \`planned\` · \`active\` · \`done\` |
+| \`release\` | \`REL-NNN\` | \`planning/releases/\` | \`rel-NNN.md\` | \`draft\` · \`active\` · \`released\` |
+| \`adr\` | \`ADR-NNN\` | \`technical/adr/\` | \`adr-NNN.md\` | \`proposed\` · \`accepted\` · \`deprecated\` · \`superseded\` |
+| \`arch\` | \`ARCH-NNN\` | \`technical/\` | \`arch-NNN.md\` | \`draft\` · \`active\` · \`deprecated\` |
+| \`service\` | \`SRV-NNN\` | \`technical/services/\` | \`srv-NNN.md\` | \`draft\` · \`active\` · \`deprecated\` |
+| \`data-proc\` | \`DP-NNN\` | \`technical/data-processes/\` | \`dp-NNN.md\` | \`draft\` · \`active\` · \`deprecated\` |
+| \`db-table\` | \`TBL-NNN\` | \`technical/database/\` | \`tbl-NNN.md\` | \`draft\` · \`active\` · \`done\` |
+| \`cicd\` | \`CICD-NNN\` | \`technical/cicd/\` | \`cicd-NNN.md\` | \`draft\` · \`active\` · \`deprecated\` |
+| \`auth-spec\` | \`AUTH-NNN\` | \`technical/auth/\` | \`auth-NNN.md\` | \`draft\` · \`active\` · \`deprecated\` |
+| \`member\` | \`MBR-NNN\` | \`team/members/\` | \`mbr-NNN.md\` | \`active\` · \`draft\` |
+| \`concept\` | \`CON-NNN\` | \`concept/{section}/\` | \`con-NNN.md\` | \`draft\` · \`active\` · \`deprecated\` |
+
+\`NNN\` = zero-padded 3-digit number (001, 002, …).
+For \`concept\`, \`{section}\` ∈ \`history\` · \`goals\` · \`principles\` · \`risks\` · \`sysdesign\` · \`sysimpl\`.
 
 ## Key rules
 
+- **type is strictly enforced** — only the 17 exact strings above are valid. Specifically invalid: \`spec\`, \`technical-spec\`, \`service-spec\`, \`auth\`, \`tech-spec\`, \`architecture\`.
 - **Never** change an existing \`id\` field — IDs are immutable.
-- \`title\` must be quoted in front matter.
-- \`epicId\` is required on stories; \`storyId\` is required on tasks and bugs.
-- \`role\` is required on team members.
-- Valid statuses differ by type — call \`project-spec_get-schema\` for details.
+- \`title\` must always be enclosed in double quotes in front matter.
+- \`epicId\` is required on every story; \`storyId\` is required on every task and bug.
+- \`role\` is required on every member.
+- \`processType\` (sync | async | cron) is required on every \`data-proc\` document.
+- Comma-separated fields (\`linkedIds\`, \`dependsOn\`, \`relations\`) must have NO spaces around commas.
+- Dates must be \`YYYY-MM-DD\` only.
+- Always call \`project-spec_validate-file\` after writing a spec file.
+- Call \`project-spec_get-schema\` before creating any file — it returns the full body templates and field reference.
 `;
 
 function writeCopilotInstructions(rootPath: string, force: boolean): void {

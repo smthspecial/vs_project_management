@@ -20,7 +20,8 @@ const TYPE_LABELS: Record<string, string> = {
   release: "Releases",
   adr: "Architecture Decision Records",
   arch: "Architecture Docs",
-  "tech-spec": "Technical Specifications",
+  "service": "Services",
+  "data-proc": "Data Processes",
   "db-table": "Database Tables",
   member: "Team Members",
 };
@@ -36,7 +37,8 @@ const TYPE_ORDER = [
   "release",
   "adr",
   "arch",
-  "tech-spec",
+  "service",
+  "data-proc",
   "db-table",
   "member",
 ];
@@ -108,6 +110,9 @@ function buildSpecContent(items: SpecItem[]): string {
       if (d.role) {
         lines.push(`- **Role**: ${d.role}`);
       }
+      if (d.processType) {
+        lines.push(`- **Process type**: ${d.processType}`);
+      }
       if (item.body.trim()) {
         lines.push(`\n${item.body.trim()}`);
       }
@@ -129,87 +134,68 @@ They live inside the \`.spec/\` folder at the workspace root.
 
 ---
 
-## Directory layout
+## TYPE REGISTRY — the only 17 valid document types
 
-| Type        | Directory                        | File name pattern  | ID prefix |
-|-------------|----------------------------------|--------------------|-----------|
-| epic        | .spec/backlog/epics/             | epic-NNN.md        | EPIC-NNN  |
-| story       | .spec/backlog/stories/           | us-NNN.md          | US-NNN    |
-| task        | .spec/backlog/tasks/             | task-NNN.md        | TASK-NNN  |
-| bug         | .spec/backlog/tasks/             | bug-NNN.md         | BUG-NNN   |
-| fr          | .spec/requirements/fr/           | fr-NNN.md          | FR-NNN    |
-| nfr         | .spec/requirements/nfr/          | nfr-NNN.md         | NFR-NNN   |
-| sprint      | .spec/planning/sprints/          | spr-NNN.md         | SPR-NNN   |
-| release     | .spec/planning/releases/         | rel-NNN.md         | REL-NNN   |
-| adr         | .spec/technical/adr/             | adr-NNN.md         | ADR-NNN   |
-| arch        | .spec/technical/architecture/    | arch-NNN.md        | ARCH-NNN  |
-| tech-spec   | .spec/technical/specs/           | spec-NNN.md        | SPEC-NNN  |
-| db-table    | .spec/technical/database/        | tbl-NNN.md         | TBL-NNN   |
-| cicd        | .spec/technical/cicd/            | cicd-NNN.md        | CICD-NNN  |
-| auth-spec   | .spec/technical/auth/            | auth-NNN.md        | AUTH-NNN  |
-| member      | .spec/team/members/              | mbr-NNN.md         | MBR-NNN   |
-| concept     | .spec/concept/{section}/         | con-NNN.md         | CON-NNN   |
+The \`type\` field in every front-matter block MUST be one of these exact lowercase strings.
+No other values exist. Using anything else (e.g. \`spec\`, \`technical-spec\`, \`auth\`, \`service-spec\`) will cause validation to fail.
 
-Concept sections: history, goals, principles, risks, sysdesign, sysimpl.
-E.g. a goals document lives at .spec/concept/goals/con-001.md.
+| \`type\` value | \`id\` prefix | Directory under \`.spec/\` | File name | Valid \`status\` values |
+|--------------|-------------|--------------------------|-----------|------------------------|
+| \`epic\`      | \`EPIC-NNN\` | \`backlog/epics/\`          | \`epic-NNN.md\` | \`draft\` · \`active\` · \`done\` |
+| \`story\`     | \`US-NNN\`   | \`backlog/stories/\`        | \`us-NNN.md\`   | \`draft\` · \`active\` · \`done\` |
+| \`task\`      | \`TASK-NNN\` | \`backlog/tasks/\`          | \`task-NNN.md\` | \`todo\` · \`in-progress\` · \`testing\` · \`blocked\` · \`done\` |
+| \`bug\`       | \`BUG-NNN\`  | \`backlog/tasks/\`          | \`bug-NNN.md\`  | \`todo\` · \`in-progress\` · \`testing\` · \`blocked\` · \`done\` |
+| \`fr\`        | \`FR-NNN\`   | \`requirements/fr/\`        | \`fr-NNN.md\`   | \`draft\` · \`active\` · \`deprecated\` |
+| \`nfr\`       | \`NFR-NNN\`  | \`requirements/nfr/\`       | \`nfr-NNN.md\`  | \`draft\` · \`active\` · \`deprecated\` |
+| \`sprint\`    | \`SPR-NNN\`  | \`planning/sprints/\`       | \`spr-NNN.md\`  | \`planned\` · \`active\` · \`done\` |
+| \`release\`   | \`REL-NNN\`  | \`planning/releases/\`      | \`rel-NNN.md\`  | \`draft\` · \`active\` · \`released\` |
+| \`adr\`       | \`ADR-NNN\`  | \`technical/adr/\`          | \`adr-NNN.md\`  | \`proposed\` · \`accepted\` · \`deprecated\` · \`superseded\` |
+| \`arch\`      | \`ARCH-NNN\` | \`technical/\`              | \`arch-NNN.md\` | \`draft\` · \`active\` · \`deprecated\` |
+| \`service\`   | \`SRV-NNN\`  | \`services/\`               | \`srv-NNN.md\`   | \`draft\` · \`active\` · \`deprecated\` |
+| \`data-proc\` | \`DP-NNN\`   | \`technical/data-processes/\`| \`dp-NNN.md\`   | \`draft\` · \`active\` · \`deprecated\` |
+| \`db-table\`  | \`TBL-NNN\`  | \`technical/database/\`     | \`tbl-NNN.md\`  | \`draft\` · \`active\` · \`done\` |
+| \`cicd\`      | \`CICD-NNN\` | \`technical/cicd/\`         | \`cicd-NNN.md\` | \`draft\` · \`active\` · \`deprecated\` |
+| \`auth-spec\` | \`AUTH-NNN\` | \`technical/auth/\`         | \`auth-NNN.md\` | \`draft\` · \`active\` · \`deprecated\` |
+| \`member\`    | \`MBR-NNN\`  | \`team/members/\`           | \`mbr-NNN.md\`  | \`active\` · \`draft\` |
+| \`concept\`   | \`CON-NNN\`  | \`concept/{section}/\`      | \`con-NNN.md\`  | \`draft\` · \`active\` · \`deprecated\` |
 
-NNN is a zero-padded 3-digit sequential number (001, 002, …).
-Always use the NEXT available number — call \`project-spec_read-spec\` to check existing IDs.
+\`NNN\` = zero-padded 3-digit number (001, 002, …). Always call \`project-spec_read-spec\` first to find the next available number.
+
+For \`concept\`, \`{section}\` is one of: \`history\` · \`goals\` · \`principles\` · \`risks\` · \`sysdesign\` · \`sysimpl\`.
+Example path: \`.spec/concept/goals/con-001.md\`
 
 ---
 
 ## Front-matter fields
 
-### Common fields (ALL types)
+### Required fields (every type)
 
 \`\`\`yaml
-id: EPIC-001          # required — uppercase ID matching the type prefix
-type: epic            # required — one of the type values in the table above
-title: "…"            # required — human-readable title, always quoted
-status: draft         # required — see valid values per type below
-created: 2026-01-15   # required — ISO date YYYY-MM-DD (today)
+id: EPIC-001          # uppercase ID — prefix from the Type Registry above
+type: epic            # MUST be one of the 17 exact type strings from the Type Registry
+title: "My Title"     # human-readable title — MUST be enclosed in double quotes
+status: draft         # MUST be one of the valid statuses for this type (see Type Registry)
+created: 2026-01-15   # ISO date YYYY-MM-DD (today)
 \`\`\`
 
-### Optional relational fields
+### Relational fields
 
 \`\`\`yaml
-epicId: EPIC-001      # story — REQUIRED parent epic reference
-storyId: US-001       # task / bug — REQUIRED parent story reference
-sprintId: SPR-001     # story / task / bug — sprint assignment
-releaseId: REL-001    # story / task / bug — release assignment
-linkedIds: FR-001,US-002   # fr / nfr — comma-separated linked item IDs (no spaces)
-dependsOn: TASK-003,TASK-004   # task / bug / story — prerequisites (no spaces)
-assigneeId: MBR-001   # task / bug — team member assignment
-role: frontend        # member — role of the team member
+epicId: EPIC-001      # story — REQUIRED: reference to the parent epic
+storyId: US-001       # task / bug — REQUIRED: reference to the parent user story
+sprintId: SPR-001     # story / task / bug — assigns the item to a sprint
+releaseId: REL-001    # story / task / bug — assigns the item to a release
+linkedIds: FR-001,US-002   # fr / nfr — comma-separated linked item IDs (NO spaces)
+dependsOn: TASK-003,TASK-004   # any — prerequisite items (NO spaces around commas)
+assigneeId: MBR-001   # task / bug — team member assigned to this item
+role: frontend        # member — REQUIRED: role (e.g. frontend, backend, designer, devops)
 priority: high        # story / task / bug / fr / nfr — high | medium | low
-startDate: 2026-01-15 # epic / story / task / bug / sprint — ISO date
-dueDate: 2026-01-28   # epic / story / task / bug / sprint — ISO date
-releaseDate: 2026-06-30   # release — ISO date
-relations: userId:TBL-001,orderId:TBL-002   # db-table — FK relations
+startDate: 2026-01-15 # epic / story / task / bug / sprint — ISO date YYYY-MM-DD
+dueDate: 2026-01-28   # epic / story / task / bug / sprint — ISO date YYYY-MM-DD
+releaseDate: 2026-06-30   # release — planned/actual release date (ISO date YYYY-MM-DD)
+relations: userId:TBL-001,orderId:TBL-002   # db-table — FK columns (NO spaces)
+processType: async                          # data-proc — sync | async | cron
 \`\`\`
-
----
-
-## Valid status values per type
-
-| Type              | Valid statuses                                   |
-|-------------------|--------------------------------------------------|
-| epic              | draft · active · done                            |
-| story             | draft · active · done                            |
-| task              | todo · in-progress · testing · blocked · done    |
-| bug               | todo · in-progress · testing · blocked · done    |
-| fr                | draft · active · deprecated                      |
-| nfr               | draft · active · deprecated                      |
-| adr               | proposed · accepted · deprecated · superseded    |
-| arch              | draft · active · deprecated                      |
-| tech-spec         | draft · active · deprecated                      |
-| db-table          | draft · active · done                            |
-| cicd              | draft · active · deprecated                      |
-| auth-spec         | draft · active · deprecated                      |
-| sprint            | planned · active · done                          |
-| release           | draft · active · released                        |
-| member            | active · draft                                   |
-| concept           | draft · active · deprecated                      |
 
 ---
 
@@ -350,7 +336,7 @@ ASCII or Mermaid diagram
 - …
 \`\`\`
 
-### tech-spec (Technical Specification)
+### service (Service)
 \`\`\`markdown
 ## Overview
 …
@@ -362,6 +348,21 @@ HTTP routes or signatures
 
 ## Implementation Notes
 …
+\`\`\`
+
+### data-proc (Data Process)
+\`\`\`markdown
+## Overview
+Describe the data process: purpose, inputs, and outputs.
+
+## Data Flow
+Input → Transformation → Output
+
+## Steps
+1. …
+
+## Error Handling
+- …
 \`\`\`
 
 ### db-table (Database Table)
@@ -446,11 +447,11 @@ Concept documents live in section-specific subdirectories under \`.spec/concept/
 
 ## Rules & constraints
 
-1. **IDs are immutable** — never change an existing \`id\` field.
-2. **Comma-separated fields** (\`linkedIds\`, \`dependsOn\`, \`relations\`) must have NO spaces around commas.
-3. **Dates** must be ISO format \`YYYY-MM-DD\` only.
-4. **title** must always be enclosed in double quotes in the front matter.
-5. **type** must exactly match one of the 16 type values (lowercase, hyphenated).
+1. **type is strictly enforced** — only the 17 exact strings in the Type Registry are valid. Never invent or guess a type. Specifically invalid: \`spec\`, \`technical-spec\`, \`service-spec\`, \`auth\`, \`architecture\`, \`requirement\`, \`tech-spec\`.
+2. **IDs are immutable** — never change an existing \`id\` field.
+3. **Comma-separated fields** (\`linkedIds\`, \`dependsOn\`, \`relations\`) must have NO spaces around commas.
+4. **Dates** must be ISO format \`YYYY-MM-DD\` only.
+5. **title** must always be enclosed in double quotes in the front matter.
 6. **epicId** is required on every story; **storyId** is required on every task and bug.
 7. **role** is required on every member.
 8. New files must be validated with \`project-spec_validate-file\` before considering them complete.
@@ -469,7 +470,8 @@ const ID_PREFIXES: Record<ItemType, string> = {
   nfr: "NFR",
   adr: "ADR",
   arch: "ARCH",
-  "tech-spec": "SPEC",
+  "service": "SRV",
+  "data-proc": "DP",
   sprint: "SPR",
   release: "REL",
   "db-table": "TBL",
@@ -488,7 +490,8 @@ const VALID_STATUSES: Record<ItemType, ItemStatus[]> = {
   nfr: ["draft", "active", "deprecated"],
   adr: ["proposed", "accepted", "deprecated", "superseded"],
   arch: ["draft", "active", "deprecated"],
-  "tech-spec": ["draft", "active", "deprecated"],
+  "service": ["draft", "active", "deprecated"],
+  "data-proc": ["draft", "active", "deprecated"],
   "db-table": ["draft", "active", "done"],
   cicd: ["draft", "active", "deprecated"],
   "auth-spec": ["draft", "active", "deprecated"],
@@ -507,7 +510,8 @@ const ALL_TYPES: ItemType[] = [
   "nfr",
   "adr",
   "arch",
-  "tech-spec",
+  "service",
+  "data-proc",
   "db-table",
   "cicd",
   "auth-spec",
@@ -594,6 +598,17 @@ function validateSpecFile(filePath: string, workspaceRoot: string): string {
     }
     if (type === "member" && !data.role) {
       errors.push("Missing required field: role (members must have a role)");
+    }
+    if (type === "data-proc") {
+      if (!data.processType) {
+        errors.push(
+          "Missing required field: processType (data-proc must have sync | async | cron)",
+        );
+      } else if (!["sync", "async", "cron"].includes(data.processType)) {
+        errors.push(
+          `Invalid processType: "${data.processType}". Must be sync | async | cron`,
+        );
+      }
     }
 
     // --- type-specific optional field warnings ---

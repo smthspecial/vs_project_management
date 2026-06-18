@@ -15,7 +15,8 @@ const TYPE_ICON: Record<string, string> = {
   nfr: "symbol-property",
   adr: "history",
   arch: "layout",
-  "tech-spec": "file-code",
+  "service": "file-code",
+  "data-proc": "graph",
   database: "database",
   sprint: "calendar",
   release: "tag",
@@ -168,7 +169,8 @@ export class SpecTreeDataProvider implements vscode.TreeDataProvider<AnyTreeItem
       release: "projectSpecSprintsTree",
       adr: "projectSpecTechnicalTree",
       arch: "projectSpecTechnicalTree",
-      "tech-spec": "projectSpecTechnicalTree",
+      "service": "projectSpecTechnicalTree",
+      "data-proc": "projectSpecTechnicalTree",
       cicd: "projectSpecTechnicalTree",
       "auth-spec": "projectSpecTechnicalTree",
       "db-table": "projectSpecDatabaseTree",
@@ -256,8 +258,11 @@ export class SpecTreeDataProvider implements vscode.TreeDataProvider<AnyTreeItem
       case "technical":
         return [
           new TreeGroupItem("adr", "Architectural Decisions", "history"),
-          new TreeGroupItem("arch", "Architecture Design", "layout"),
+          new TreeGroupItem("arch-docs", "Architecture Docs", "layout"),
+          new TreeGroupItem("cicd", "CI/CD", "settings-gear"),
+          new TreeGroupItem("auth-spec", "Roles & Authorization", "shield"),
           new TreeGroupItem("spec", "Services", "file-code"),
+          new TreeGroupItem("data-proc", "Data Processes", "graph"),
         ];
       case "fr":
         return this.items
@@ -280,12 +285,6 @@ export class SpecTreeDataProvider implements vscode.TreeDataProvider<AnyTreeItem
           .map(
             (i) => new SpecTreeItem(i, vscode.TreeItemCollapsibleState.None),
           );
-      case "arch":
-        return [
-          new TreeGroupItem("arch-docs", "Architecture Docs", "layout"),
-          new TreeGroupItem("cicd", "CI/CD", "settings-gear"),
-          new TreeGroupItem("auth-spec", "Roles & Authorization", "shield"),
-        ];
       case "arch-docs":
         return this.items
           .filter((i) => i.data.type === "arch")
@@ -296,8 +295,15 @@ export class SpecTreeDataProvider implements vscode.TreeDataProvider<AnyTreeItem
       case "spec":
         return this.items
           .filter(
-            (i) => i.data.type === "tech-spec" && !i.data.id.startsWith("DB-"),
+            (i) => i.data.type === "service" && !i.data.id.startsWith("DB-"),
           )
+          .sort((a, b) => a.data.id.localeCompare(b.data.id))
+          .map(
+            (i) => new SpecTreeItem(i, vscode.TreeItemCollapsibleState.None),
+          );
+      case "data-proc":
+        return this.items
+          .filter((i) => i.data.type === "data-proc")
           .sort((a, b) => a.data.id.localeCompare(b.data.id))
           .map(
             (i) => new SpecTreeItem(i, vscode.TreeItemCollapsibleState.None),
@@ -477,15 +483,7 @@ export class SectionTreeAdapter implements vscode.TreeDataProvider<AnyTreeItem> 
 
   getParent(element: AnyTreeItem): AnyTreeItem | undefined {
     if (element instanceof TreeGroupItem) {
-      // Second-level groups nested under "arch"
-      if (
-        element.groupId === "arch-docs" ||
-        element.groupId === "cicd" ||
-        element.groupId === "auth-spec"
-      ) {
-        return new TreeGroupItem("arch", "Architecture Design", "layout");
-      }
-      return undefined; // top-level groups have no parent
+      return undefined; // all groups are top-level
     }
 
     // SpecTreeItem — parent depends on the section this adapter serves
@@ -566,8 +564,11 @@ export class SectionTreeAdapter implements vscode.TreeDataProvider<AnyTreeItem> 
         if (type === "arch") {
           return new TreeGroupItem("arch-docs", "Architecture Docs", "layout");
         }
-        if (type === "tech-spec") {
+        if (type === "service") {
           return new TreeGroupItem("spec", "Services", "file-code");
+        }
+        if (type === "data-proc") {
+          return new TreeGroupItem("data-proc", "Data Processes", "graph");
         }
         if (type === "cicd") {
           return new TreeGroupItem("cicd", "CI/CD", "settings-gear");

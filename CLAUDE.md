@@ -28,27 +28,33 @@ An MCP server is bundled at `mcp/server.js` and auto-discovered via `.mcp.json`.
 
 ---
 
-## Document types and IDs
+## TYPE REGISTRY — the only 17 valid document types
 
-| Type | ID prefix | Directory | File pattern |
-|------|-----------|-----------|--------------|
-| `epic` | `EPIC-` | `.spec/backlog/epics/` | `epic-NNN.md` |
-| `story` | `US-` | `.spec/backlog/stories/` | `us-NNN.md` |
-| `task` | `TASK-` | `.spec/backlog/tasks/` | `task-NNN.md` |
-| `bug` | `BUG-` | `.spec/backlog/tasks/` | `bug-NNN.md` |
-| `fr` | `FR-` | `.spec/requirements/fr/` | `fr-NNN.md` |
-| `nfr` | `NFR-` | `.spec/requirements/nfr/` | `nfr-NNN.md` |
-| `sprint` | `SPR-` | `.spec/planning/sprints/` | `spr-NNN.md` |
-| `release` | `REL-` | `.spec/planning/releases/` | `rel-NNN.md` |
-| `adr` | `ADR-` | `.spec/technical/adr/` | `adr-NNN.md` |
-| `arch` | `ARCH-` | `.spec/technical/architecture/` | `arch-NNN.md` |
-| `tech-spec` | `SPEC-` | `.spec/technical/specs/` | `spec-NNN.md` |
-| `db-table` | `TBL-` | `.spec/technical/database/` | `tbl-NNN.md` |
-| `cicd` | `CICD-` | `.spec/technical/cicd/` | `cicd-NNN.md` |
-| `auth-spec` | `AUTH-` | `.spec/technical/auth/` | `auth-NNN.md` |
-| `member` | `MBR-` | `.spec/team/members/` | `mbr-NNN.md` |
+The `type` field MUST be one of these exact strings. No other values are accepted.
+Never invent types — `spec`, `technical-spec`, `service-spec`, `auth`, `tech-spec` are all invalid.
 
-`NNN` is a zero-padded 3-digit sequential number (001, 002, …).
+| `type` | `id` prefix | Directory under `.spec/` | File name | Valid `status` values |
+|--------|-------------|--------------------------|-----------|----------------------|
+| `epic` | `EPIC-NNN` | `backlog/epics/` | `epic-NNN.md` | `draft` · `active` · `done` |
+| `story` | `US-NNN` | `backlog/stories/` | `us-NNN.md` | `draft` · `active` · `done` |
+| `task` | `TASK-NNN` | `backlog/tasks/` | `task-NNN.md` | `todo` · `in-progress` · `testing` · `blocked` · `done` |
+| `bug` | `BUG-NNN` | `backlog/tasks/` | `bug-NNN.md` | `todo` · `in-progress` · `testing` · `blocked` · `done` |
+| `fr` | `FR-NNN` | `requirements/fr/` | `fr-NNN.md` | `draft` · `active` · `deprecated` |
+| `nfr` | `NFR-NNN` | `requirements/nfr/` | `nfr-NNN.md` | `draft` · `active` · `deprecated` |
+| `sprint` | `SPR-NNN` | `planning/sprints/` | `spr-NNN.md` | `planned` · `active` · `done` |
+| `release` | `REL-NNN` | `planning/releases/` | `rel-NNN.md` | `draft` · `active` · `released` |
+| `adr` | `ADR-NNN` | `technical/adr/` | `adr-NNN.md` | `proposed` · `accepted` · `deprecated` · `superseded` |
+| `arch` | `ARCH-NNN` | `technical/` | `arch-NNN.md` | `draft` · `active` · `deprecated` |
+| `service` | `SRV-NNN` | `technical/services/` | `srv-NNN.md` | `draft` · `active` · `deprecated` |
+| `data-proc` | `DP-NNN` | `technical/data-processes/` | `dp-NNN.md` | `draft` · `active` · `deprecated` |
+| `db-table` | `TBL-NNN` | `technical/database/` | `tbl-NNN.md` | `draft` · `active` · `done` |
+| `cicd` | `CICD-NNN` | `technical/cicd/` | `cicd-NNN.md` | `draft` · `active` · `deprecated` |
+| `auth-spec` | `AUTH-NNN` | `technical/auth/` | `auth-NNN.md` | `draft` · `active` · `deprecated` |
+| `member` | `MBR-NNN` | `team/members/` | `mbr-NNN.md` | `active` · `draft` |
+| `concept` | `CON-NNN` | `concept/{section}/` | `con-NNN.md` | `draft` · `active` · `deprecated` |
+
+`NNN` = zero-padded 3-digit number (001, 002, …).
+For `concept`, `{section}` ∈ `history` · `goals` · `principles` · `risks` · `sysdesign` · `sysimpl`.
 
 ---
 
@@ -56,10 +62,10 @@ An MCP server is bundled at `mcp/server.js` and auto-discovered via `.mcp.json`.
 
 ### Required fields (every type)
 ```yaml
-id: EPIC-001        # uppercase, matches type prefix
-type: epic          # one of the 15 type values
+id: EPIC-001        # uppercase — prefix from the Type Registry above
+type: epic          # MUST be one of the 17 exact strings from the Type Registry
 title: "My title"   # MUST be in double quotes
-status: draft       # see valid values below
+status: draft       # MUST be one of the valid statuses for this type (see Type Registry)
 created: 2026-01-15 # ISO date YYYY-MM-DD
 ```
 
@@ -75,24 +81,12 @@ dependsOn: TASK-002,TASK-003  # prerequisites (comma-separated, NO spaces)
 assigneeId: MBR-001     # task/bug → team member
 role: frontend          # member role (REQUIRED on member)
 priority: high          # high | medium | low
-startDate: 2026-01-15   # ISO date
-dueDate: 2026-01-28     # ISO date
-releaseDate: 2026-06-30 # ISO date (release only)
-relations: userId:TBL-001,orderId:TBL-002  # FK refs (db-table only)
+startDate: 2026-01-15   # ISO date YYYY-MM-DD
+dueDate: 2026-01-28     # ISO date YYYY-MM-DD
+releaseDate: 2026-06-30 # ISO date YYYY-MM-DD (release only)
+relations: userId:TBL-001,orderId:TBL-002  # FK refs (db-table only, NO spaces)
+processType: async                         # data-proc — sync | async | cron (REQUIRED on data-proc)
 ```
-
-### Valid statuses per type
-
-| Type | Valid statuses |
-|------|---------------|
-| epic, story | `draft` · `active` · `done` |
-| task, bug | `todo` · `in-progress` · `testing` · `blocked` · `done` |
-| fr, nfr, arch, tech-spec, cicd, auth-spec | `draft` · `active` · `deprecated` |
-| adr | `proposed` · `accepted` · `deprecated` · `superseded` |
-| db-table | `draft` · `active` · `done` |
-| sprint | `planned` · `active` · `done` |
-| release | `draft` · `active` · `released` |
-| member | `active` · `draft` |
 
 ---
 
@@ -113,7 +107,7 @@ Epic ◄──epicId── Story ◄──storyId── Task/Bug
 
 db-table ──relations──► db-table   (FK references)
 
-ADR/arch/tech-spec/cicd/auth-spec — standalone technical docs
+ADR/arch/service/cicd/auth-spec — standalone technical docs
   └─ may use dependsOn to reference tasks or other items
 ```
 
@@ -121,6 +115,7 @@ ADR/arch/tech-spec/cicd/auth-spec — standalone technical docs
 
 ## Key rules
 
+- **type is strictly enforced** — only the 17 exact strings in the Type Registry are valid. Never invent types.
 - **Never** change an existing `id` — IDs are immutable.
 - `title` must always be in double quotes in the front matter.
 - Comma-separated fields (`linkedIds`, `dependsOn`, `relations`) must have **no spaces** around commas.

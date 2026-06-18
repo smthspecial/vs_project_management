@@ -67,6 +67,7 @@ export function parseFrontMatter(content: string): {
     priority: raw["priority"] as ItemPriority | undefined,
     assigneeId: raw["assigneeId"],
     role: raw["role"],
+    processType: raw["processType"] as "sync" | "async" | "cron" | undefined,
   };
 
   return { data, body };
@@ -122,6 +123,9 @@ export function buildFrontMatter(data: SpecFrontMatter): string {
   if (data.role) {
     lines.push(`role: ${data.role}`);
   }
+  if (data.processType) {
+    lines.push(`processType: ${data.processType}`);
+  }
   lines.push(`created: ${data.created}`);
   lines.push("---");
   lines.push("");
@@ -145,8 +149,9 @@ export function getTypeDir(rootPath: string, type: ItemType): string {
     task: "backlog/tasks",
     bug: "backlog/tasks",
     adr: "technical/adr",
-    arch: "technical/architecture",
-    "tech-spec": "technical/specs",
+    arch: "technical",
+    "data-proc": "technical/data-processes",
+    "service": "technical/services",
     "db-table": "technical/database",
     sprint: "planning/sprints",
     release: "planning/releases",
@@ -190,8 +195,9 @@ export function readAllSpecItems(rootPath: string): SpecItem[] {
     "planning/sprints",
     "planning/releases",
     "technical/adr",
-    "technical/architecture",
-    "technical/specs",
+    "technical",
+    "technical/data-processes",
+    "technical/services",
     "technical/database",
     "technical/cicd",
     "technical/auth",
@@ -248,8 +254,10 @@ export function generateId(items: SpecItem[], type: ItemType): string {
                         ? "REL"
                         : type === "db-table"
                           ? "TBL"
-                          : type === "tech-spec"
-                            ? "TSPEC"
+                          : type === "service"
+                            ? "SRV"
+                            : type === "data-proc"
+                              ? "DP"
                             : type === "cicd"
                               ? "CICD"
                               : type === "auth-spec"

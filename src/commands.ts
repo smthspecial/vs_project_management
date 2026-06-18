@@ -550,14 +550,14 @@ async function createTechSpec(
     return;
   }
 
-  const id = generateId(provider.getAllItems(), "tech-spec");
-  const dir = getTypeDir(rootPath, "tech-spec");
+  const id = generateId(provider.getAllItems(), "service");
+  const dir = getTypeDir(rootPath, "service");
   ensureDir(dir);
   const filePath = path.join(dir, `${id.toLowerCase()}.md`);
 
   const frontMatter = buildFrontMatter({
     id,
-    type: "tech-spec",
+    type: "service",
     title: title.trim(),
     status: "draft",
     created: today(),
@@ -568,6 +568,56 @@ async function createTechSpec(
     `## API / Interface\n\n\`\`\`\n<!-- Define the API/interface -->\n\`\`\`\n\n` +
     `## Data Model\n\n- \n\n` +
     `## Dependencies\n\n- \n\n` +
+    `## Error Handling\n\n- \n`;
+
+  fs.writeFileSync(filePath, frontMatter + body, "utf-8");
+  provider.refresh();
+  await openFile(filePath);
+}
+
+async function createDataProc(
+  provider: SpecTreeDataProvider,
+  getRootPath: () => string | undefined,
+): Promise<void> {
+  const rootPath = await requireRootPath(getRootPath);
+  if (!rootPath) {
+    return;
+  }
+
+  const title = await vscode.window.showInputBox({
+    prompt: "Data process title",
+    placeHolder: "e.g. User Events ETL, Order Sync Pipeline",
+    validateInput: (v) => (v.trim() ? null : "Title cannot be empty"),
+  });
+  if (!title) {
+    return;
+  }
+
+  const id = generateId(provider.getAllItems(), "data-proc");
+  const dir = getTypeDir(rootPath, "data-proc");
+  ensureDir(dir);
+  const filePath = path.join(dir, `${id.toLowerCase()}.md`);
+
+  const processType = await vscode.window.showQuickPick(["async", "sync", "cron"], {
+    placeHolder: "Select process type",
+  });
+  if (!processType) {
+    return;
+  }
+
+  const frontMatter = buildFrontMatter({
+    id,
+    type: "data-proc",
+    title: title.trim(),
+    status: "draft",
+    created: today(),
+    processType: processType as "sync" | "async" | "cron",
+  });
+
+  const body =
+    `## Overview\n\nDescribe this data process: purpose, inputs, and outputs.\n\n` +
+    `## Data Flow\n\nInput → Transformation → Output\n\n` +
+    `## Steps\n\n1. \n\n` +
     `## Error Handling\n\n- \n`;
 
   fs.writeFileSync(filePath, frontMatter + body, "utf-8");
@@ -1457,6 +1507,10 @@ export function registerCommands(
 
     vscode.commands.registerCommand("project-spec.newTechSpec", () =>
       createTechSpec(provider, getRootPath),
+    ),
+
+    vscode.commands.registerCommand("project-spec.newDataProc", () =>
+      createDataProc(provider, getRootPath),
     ),
 
     vscode.commands.registerCommand(
