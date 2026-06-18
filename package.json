@@ -2,7 +2,7 @@
   "name": "project-spec",
   "displayName": "Project Spec",
   "description": "Project planning extension: requirements, epics, user stories, tasks, ADRs, and architecture docs",
-  "version": "0.0.9",
+  "version": "0.0.10",
   "icon": "resources/icon.png",
   "license": "Elastic-2.0",
   "engines": {
