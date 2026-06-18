@@ -96,6 +96,12 @@ const SPEC_SUBDIRS = [
   "technical/cicd",
   "technical/auth",
   "team/members",
+  "concept/history",
+  "concept/goals",
+  "concept/principles",
+  "concept/risks",
+  "concept/sysdesign",
+  "concept/sysimpl",
 ];
 
 function readAllSpecItems() {
@@ -135,6 +141,7 @@ const TYPE_LABELS = {
   cicd: "CI/CD Pipelines",
   "auth-spec": "Auth Specifications",
   member: "Team Members",
+  concept: "Concept Documents",
 };
 
 const TYPE_ORDER = [
@@ -153,6 +160,7 @@ const TYPE_ORDER = [
   "auth-spec",
   "db-table",
   "member",
+  "concept",
 ];
 
 function buildSpecContent(items) {
@@ -233,6 +241,10 @@ They live inside the \`.spec/\` folder at the workspace root.
 | cicd        | .spec/technical/cicd/            | cicd-NNN.md        | CICD-NNN  |
 | auth-spec   | .spec/technical/auth/            | auth-NNN.md        | AUTH-NNN  |
 | member      | .spec/team/members/              | mbr-NNN.md         | MBR-NNN   |
+| concept     | .spec/concept/{section}/         | con-NNN.md         | CON-NNN   |
+
+Concept sections: history, goals, principles, risks, sysdesign, sysimpl.
+E.g. a goals document lives at .spec/concept/goals/con-001.md.
 
 NNN is a zero-padded 3-digit sequential number (001, 002, …).
 Always use the NEXT available number — call \`read_spec\` to check existing IDs before creating.
@@ -245,7 +257,7 @@ Always use the NEXT available number — call \`read_spec\` to check existing ID
 
 \`\`\`yaml
 id: EPIC-001          # uppercase ID matching the type prefix, e.g. EPIC-001
-type: epic            # one of the 15 type values in the table above
+type: epic            # one of the 16 type values in the table above
 title: "My Epic"      # human-readable title, MUST be enclosed in double quotes
 status: draft         # see valid values per type below
 created: 2026-01-15   # ISO date YYYY-MM-DD (today's date)
@@ -315,6 +327,7 @@ relations: userId:TBL-001,orderId:TBL-002
 | sprint            | planned · active · done                          |
 | release           | draft · active · released                        |
 | member            | active · draft                                   |
+| concept           | draft · active · deprecated                      |
 
 ---
 
@@ -496,6 +509,20 @@ The system shall …
 Name — role description.
 \`\`\`
 
+### concept
+Concept documents live in section-specific subdirectories under \`.spec/concept/\`:
+- \`history\`  → History & Problem
+- \`goals\`    → Goals
+- \`principles\` → Core Principles
+- \`risks\`    → Risks & Obstacles
+- \`sysdesign\` → System Design
+- \`sysimpl\`  → System Implementation
+
+\`\`\`markdown
+## [Section-appropriate heading]
+…
+\`\`\`
+
 ---
 
 ## Rules & constraints
@@ -504,7 +531,7 @@ Name — role description.
 2. **Comma-separated fields** (\`linkedIds\`, \`dependsOn\`, \`relations\`) must have NO spaces around commas.
 3. **Dates** must be ISO format \`YYYY-MM-DD\` only.
 4. **title** must always be enclosed in double quotes in the front matter.
-5. **type** must exactly match one of the 15 type values (lowercase, hyphenated).
+5. **type** must exactly match one of the 16 type values (lowercase, hyphenated).
 6. **epicId** is required on every story; **storyId** is required on every task and bug.
 7. **role** is required on every member.
 8. Always call \`validate_file\` after writing a file to confirm it's valid.
@@ -531,6 +558,7 @@ const ID_PREFIXES = {
   cicd: "CICD",
   "auth-spec": "AUTH",
   member: "MBR",
+  concept: "CON",
 };
 
 const VALID_STATUSES = {
@@ -549,6 +577,7 @@ const VALID_STATUSES = {
   sprint: ["planned", "active", "done"],
   release: ["draft", "active", "released"],
   member: ["active", "draft"],
+  concept: ["draft", "active", "deprecated"],
 };
 
 const ALL_TYPES = Object.keys(ID_PREFIXES);
@@ -737,7 +766,7 @@ const TOOLS = [
           type: "string",
           description:
             "Comma-separated list of item types to filter by. " +
-            "Valid types: epic, story, task, bug, fr, nfr, adr, arch, tech-spec, db-table, cicd, auth-spec, sprint, release, member.",
+            "Valid types: epic, story, task, bug, fr, nfr, adr, arch, tech-spec, db-table, cicd, auth-spec, sprint, release, member, concept.",
         },
         status: {
           type: "string",
