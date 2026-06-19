@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import * as fs from "fs";
 import * as path from "path";
+import { execFile } from "child_process";
 import {
   SpecTreeDataProvider,
   SectionTreeAdapter,
@@ -13,6 +14,8 @@ import { PlanningPanel, patchFrontMatter } from "./panels";
 import { registerSpecTool } from "./specTool";
 import { registerHoverProvider } from "./hoverProvider";
 import { SyncTreeDataProvider } from "./syncTree";
+import { getTypeDir } from "./specParser";
+import { ItemType } from "./models";
 import {
   fetchRemote,
   stageAndCommitSpec,
@@ -21,6 +24,150 @@ import {
   getRemoteUrl,
   buildPrUrl,
 } from "./gitSync";
+
+interface SearchResult {
+  specId: string;
+  title: string;
+  type: string;
+  status: string;
+  filePath: string;
+  score: number;
+}
+
+async function vectorSearch(
+  context: vscode.ExtensionContext,
+  rootPath: string,
+): Promise<void> {
+  const query = await vscode.window.showInputBox({
+    prompt: "Search project specs",
+    placeHolder: "e.g. authentication, performance requirements",
+  });
+  if (!query) {
+    return;
+  }
+
+  await vscode.window.withProgress(
+    {
+      location: vscode.ProgressLocation.Notification,
+      title: `Project Spec: searching for "${query}"…`,
+      cancellable: false,
+    },
+    () =>
+      new Promise<void>((resolve) => {
+        const serverPath = path.join(context.extensionPath, "mcp", "vector-server.js");
+        execFile(
+          "node",
+          [serverPath, "--search", query],
+          { cwd: rootPath, timeout: 30 * 1000, maxBuffer: 10 * 1024 * 1024 },
+          async (err: Error | null, stdout: string) => {
+            resolve();
+            if (err) {
+              vscode.window.showErrorMessage(
+                `Project Spec: search failed — ${err.message}\n` +
+                  "Make sure Ollama is running: ollama pull nomic-embed-text",
+              );
+              return;
+            }
+
+            const results = parseSearchResults(stdout, rootPath);
+            if (results.length === 0) {
+              vscode.window.showInformationMessage(`No results found for "${query}".`);
+              return;
+            }
+
+            const picks = results.map((r) => ({
+              label: `$(file) ${r.specId}`,
+              description: r.title,
+              detail: `${r.type} (${r.status}) — ${(r.score * 100).toFixed(1)}%`,
+              result: r,
+            }));
+
+            const pick = await vscode.window.showQuickPick(picks, {
+              placeHolder: "Select a result to open",
+              matchOnDescription: true,
+              matchOnDetail: true,
+            });
+
+            if (pick) {
+              const uri = vscode.Uri.file(pick.result.filePath);
+              await vscode.commands.executeCommand("project-spec._revealInTree", pick.result.filePath);
+              await vscode.window.showTextDocument(uri);
+            }
+          },
+        );
+      }),
+  );
+}
+
+function buildFilePathFromId(rootPath: string, specId: string, type: string): string {
+  const typeDir = getTypeDir(rootPath, type as ItemType);
+
+  // Extract number from specId (e.g., "EPIC-001" -> "001")
+  const match = specId.match(/-(\d+)$/);
+  const num = match ? match[1] : "001";
+
+  // Map type to filename prefix
+  const filePrefix =
+    type === "epic" ? "epic"
+    : type === "story" ? "us"
+    : type === "task" ? "task"
+    : type === "bug" ? "bug"
+    : type === "fr" ? "fr"
+    : type === "nfr" ? "nfr"
+    : type === "adr" ? "adr"
+    : type === "arch" ? "arch"
+    : type === "sprint" ? "spr"
+    : type === "release" ? "rel"
+    : type === "db-table" ? "tbl"
+    : type === "service" ? "srv"
+    : type === "data-proc" ? "dp"
+    : type === "cicd" ? "cicd"
+    : type === "auth-spec" ? "auth"
+    : type === "member" ? "mbr"
+    : type === "concept" ? "con"
+    : type;
+
+  return path.join(typeDir, `${filePrefix}-${num}.md`);
+}
+
+function parseSearchResults(markdown: string, rootPath: string): SearchResult[] {
+  const results: SearchResult[] = [];
+  const lines = markdown.split("\n");
+
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i]!.trim();
+
+    // Look for result header: ## [SPEC-ID] Title (score%)
+    const match = line.match(/^##\s+\[([^\]]+)\]\s+(.+?)\s+\((\d+(?:\.\d+)?)%\)$/);
+    if (match) {
+      const specId = match[1];
+      const title = match[2];
+      const score = parseFloat(match[3]) / 100;
+
+      // Next line has type and status
+      const metaLine = lines[i + 1]?.trim() || "";
+      const typeMatch = metaLine.match(/type:\s*([^\s|]+)\s*\|\s*status:\s*([^\s|]+)/);
+      if (typeMatch) {
+        const type = typeMatch[1];
+        const status = typeMatch[2];
+        const filePath = buildFilePathFromId(rootPath, specId, type);
+
+        results.push({
+          specId,
+          title,
+          type,
+          status,
+          filePath,
+          score,
+        });
+      }
+    }
+    i++;
+  }
+
+  return results.sort((a, b) => b.score - a.score);
+}
 
 export function activate(context: vscode.ExtensionContext): void {
   const getRootPath = (): string | undefined =>
@@ -399,6 +546,22 @@ export function activate(context: vscode.ExtensionContext): void {
         );
       },
     ),
+
+    vscode.commands.registerCommand(
+      "project-spec.vectorSearch",
+      async () => {
+        const rp = getRootPath();
+        if (!rp) {
+          vscode.window.showWarningMessage(
+            "Project Spec: no workspace folder open.",
+          );
+          return;
+        }
+        await vectorSearch(context, rp);
+      },
+    ),
+
+    ...registerReindexCommands(context, getRootPath),
   );
 
   // Auto-write copilot instructions if .spec/ exists and the file is absent
@@ -410,6 +573,73 @@ export function activate(context: vscode.ExtensionContext): void {
   }
 }
 
+// ── Vector store reindex commands ───────────────────────────────────────────
+
+const REINDEX_PANELS: Array<{ commandId: string; panel: string | null; label: string }> = [
+  { commandId: "project-spec.reindexVectorRequirements", panel: "requirements", label: "Requirements" },
+  { commandId: "project-spec.reindexVectorBacklog",      panel: "backlog",       label: "Backlog" },
+  { commandId: "project-spec.reindexVectorSprints",      panel: "sprints",       label: "Sprints & Releases" },
+  { commandId: "project-spec.reindexVectorTechnical",    panel: "technical",     label: "Technical" },
+  { commandId: "project-spec.reindexVectorDatabase",     panel: "database",      label: "Database" },
+  { commandId: "project-spec.reindexVectorTeam",         panel: "team",          label: "Team" },
+  { commandId: "project-spec.reindexVectorConcept",      panel: "concept",       label: "Concept" },
+  { commandId: "project-spec.reindexVectorAll",          panel: null,            label: "all panels" },
+];
+
+function registerReindexCommands(
+  context: vscode.ExtensionContext,
+  getRootPath: () => string | undefined,
+): vscode.Disposable[] {
+  const serverPath = path.join(context.extensionPath, "mcp", "vector-server.js");
+
+  return REINDEX_PANELS.map(({ commandId, panel, label }) =>
+    vscode.commands.registerCommand(commandId, async () => {
+      const rp = getRootPath();
+      if (!rp) {
+        vscode.window.showWarningMessage("Project Spec: no workspace folder open.");
+        return;
+      }
+      if (!fs.existsSync(serverPath)) {
+        vscode.window.showErrorMessage(
+          `Project Spec: vector server not found at ${serverPath}`,
+        );
+        return;
+      }
+      const args = ["--reindex"];
+      if (panel) { args.push(`--panel=${panel}`); }
+
+      await vscode.window.withProgress(
+        {
+          location: vscode.ProgressLocation.Notification,
+          title: `Project Spec: reindexing ${label}…`,
+          cancellable: false,
+        },
+        () =>
+          new Promise<void>((resolve) => {
+            execFile(
+              "node",
+              [serverPath, ...args],
+              { cwd: rp, timeout: 5 * 60 * 1000 },
+              (err, stdout) => {
+                resolve();
+                if (err) {
+                  vscode.window.showErrorMessage(
+                    `Project Spec: reindex failed — ${err.message}\n` +
+                      "Make sure Ollama is running: ollama pull nomic-embed-text",
+                  );
+                } else {
+                  vscode.window.showInformationMessage(
+                    `Project Spec: ${stdout.trim() || `${label} vector index rebuilt.`}`,
+                  );
+                }
+              },
+            );
+          }),
+      );
+    }),
+  );
+}
+
 // ── Copilot instructions generator ──────────────────────────────────────────
 
 const COPILOT_INSTRUCTIONS = `\
@@ -419,22 +649,40 @@ This workspace uses the **Project Spec** VS Code extension. All project document
 
 ## Available language model tools
 
-Use these tools when working in this workspace:
+### Project Spec Tools
 
 | Tool | Purpose |
 |------|---------|
-| \`project-spec_read-spec\` | Read the full project specification (all item types) |
+| \`project-spec_semantic-search\` | **ALWAYS use this first** — search specs by meaning (e.g. "authentication", "performance") instead of reading all files |
+| \`project-spec_read-spec\` | Read all spec items (use only after searching doesn't return results) |
 | \`project-spec_get-schema\` | Get the document schema and authoring guide — call this **before** creating or editing any spec file |
 | \`project-spec_query\` | Filter spec items by \`type\` and/or \`status\` |
 | \`project-spec_write-file\` | Create or overwrite a \`.spec/\` markdown file |
 | \`project-spec_validate-file\` | Validate a spec file after writing |
 
-## Workflow for creating or editing spec items
+### Vector Search (Semantic)
 
-1. Call \`project-spec_get-schema\` to get the correct front-matter fields, directory location, and ID conventions for the target type.
-2. Call \`project-spec_read-spec\` or \`project-spec_query\` to find existing IDs and determine the next available number.
-3. Write the file with \`project-spec_write-file\` using the workspace-relative path (e.g. \`.spec/backlog/epics/epic-004.md\`).
-4. Call \`project-spec_validate-file\` with the same path to confirm the file is valid.
+| Tool | Purpose |
+|------|---------|
+| \`project-spec-vector_semantic-search\` | Search by meaning across all spec files — this is faster than reading everything |
+| \`project-spec-vector_get-vector-status\` | Check if vector index is built |
+| \`project-spec-vector_reindex-vector-store\` | Rebuild the vector index (requires Ollama) |
+
+**CRITICAL:** When you need to find existing requirements, decisions, or features, **use \`project-spec-vector_semantic-search\` FIRST**. Never call \`project-spec_read-spec\` without searching first.
+
+## Workflow for finding or creating spec items
+
+### To find existing specs:
+1. **Search first**: Use \`project-spec-vector_semantic-search\` with a natural language query (e.g., "user authentication", "performance requirements")
+2. If no results, then use \`project-spec_read-spec\` to see all items
+3. Never manually read .spec/ files — let the tools do it
+
+### To create or edit specs:
+1. **Search for duplicates**: Use \`project-spec-vector_semantic-search\` to avoid creating duplicates
+2. Call \`project-spec_get-schema\` to get correct front-matter fields, directory location, and ID conventions
+3. Call \`project-spec_read-spec\` or \`project-spec_query\` only to find the next available ID number
+4. Write the file with \`project-spec_write-file\` using workspace-relative path (e.g. \`.spec/backlog/epics/epic-004.md\`)
+5. Call \`project-spec_validate-file\` to confirm the file is valid
 
 ## TYPE REGISTRY — the only 17 valid document types
 
