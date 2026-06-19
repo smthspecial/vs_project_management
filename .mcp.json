@@ -4,6 +4,11 @@
       "command": "node",
       "args": ["mcp/server.js"],
       "description": "Project Spec MCP server — read, query, write and validate .spec/ files"
+    },
+    "project-spec-vector": {
+      "command": "node",
+      "args": ["mcp/vector-server.js"],
+      "description": "Project Spec vector search — semantic search over .spec/ files using local Ollama embeddings"
     }
   }
 }

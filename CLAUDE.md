@@ -1,12 +1,33 @@
 # Project Spec — Claude Code Instructions
 
+## MANDATORY: Use vector search before touching any spec files
+
+**Every time** you need to find, understand, or check existing spec content — run this first:
+
+```bash
+node mcp/vector-server.js --search "your query" [--panel=<panel>] [--limit=10]
+```
+
+Valid panels: `requirements` · `backlog` · `sprints` · `technical` · `database` · `team` · `concept`
+
+- Do **NOT** use an Agent, grep, or `read_spec` as the first step for discovery.
+- Do **NOT** read `.spec/` files directly until vector search has been tried.
+- If the command returns "No index found" → tell the user to click `$(layers)` in the VS Code Sync panel to build the index, then retry.
+- Only fall back to `read_spec` when vector search returns no results or the index isn't built.
+
+---
+
 This workspace uses the **Project Spec** VS Code extension. All project documentation lives in the `.spec/` folder as YAML front-matter Markdown files.
 
-An MCP server is bundled at `mcp/server.js` and auto-discovered via `.mcp.json`. It gives you direct read/write access to the spec files without requiring VS Code.
+Two MCP servers are bundled and auto-discovered via `.mcp.json`:
+- `mcp/server.js` — read/write access to spec files
+- `mcp/vector-server.js` — semantic search over spec content (requires Ollama + index built via VS Code)
 
 ---
 
 ## Available MCP tools
+
+### Spec file tools (`project-spec` server)
 
 | Tool | Purpose |
 |------|---------|
@@ -16,6 +37,32 @@ An MCP server is bundled at `mcp/server.js` and auto-discovered via `.mcp.json`.
 | `write_file` | Create or overwrite a `.spec/` file |
 | `validate_file` | Validate a spec file after writing |
 | `read_file` | Read the raw content of a single spec file |
+
+### Semantic search — ALWAYS use this before reading spec files manually
+
+**This is the primary way to find spec content. Use it before `read_spec`, `query`, or any file reads.**
+
+The vector index lives at `.spec/.vector-index/`. Use this Bash command directly — it works even if the MCP server isn't loaded:
+
+```bash
+node mcp/vector-server.js --search "your query here"
+# with panel filter:
+node mcp/vector-server.js --search "your query here" --panel=technical
+# with result limit:
+node mcp/vector-server.js --search "your query here" --limit=10
+```
+
+Valid panel values: `requirements` · `backlog` · `sprints` · `technical` · `database` · `team` · `concept`
+
+**When to run this:**
+- Any time the user asks about existing requirements, decisions, architecture, or features
+- Before creating new items — check for duplicates first
+- When the user says "find", "search", "what do we have on", "is there a spec for"
+- Before answering any question that might be addressed in the spec
+
+**If it returns "No index found":** tell the user to click the `$(database)` icon in the relevant VS Code sidebar panel (or `$(layers)` in the Sync panel to reindex everything), then retry.
+
+**If the MCP tools `semantic_search` / `reindex_vector_store` / `get_vector_status` appear in your tool list**, prefer those over the bash command — same functionality, cleaner output.
 
 ---
 
