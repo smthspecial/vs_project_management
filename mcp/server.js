@@ -90,7 +90,7 @@ const SPEC_SUBDIRS = [
   "planning/sprints",
   "planning/releases",
   "technical/adr",
-  "technical",
+  "technical/arch",
   "technical/data-processes",
   "technical/services",
   "technical/database",
@@ -241,7 +241,7 @@ No other values exist. Using anything else (e.g. \`spec\`, \`technical-spec\`, \
 | \`sprint\`    | \`SPR-NNN\`  | \`planning/sprints/\`       | \`spr-NNN.md\`  | \`planned\` · \`active\` · \`done\` |
 | \`release\`   | \`REL-NNN\`  | \`planning/releases/\`      | \`rel-NNN.md\`  | \`draft\` · \`active\` · \`released\` |
 | \`adr\`       | \`ADR-NNN\`  | \`technical/adr/\`          | \`adr-NNN.md\`  | \`proposed\` · \`accepted\` · \`deprecated\` · \`superseded\` |
-| \`arch\`      | \`ARCH-NNN\` | \`technical/\`              | \`arch-NNN.md\` | \`draft\` · \`active\` · \`deprecated\` |
+| \`arch\`      | \`ARCH-NNN\` | \`technical/arch/\`         | \`arch-NNN.md\` | \`draft\` · \`active\` · \`deprecated\` |
 | \`service\`   | \`SRV-NNN\`  | \`services/\`               | \`srv-NNN.md\`  | \`draft\` · \`active\` · \`deprecated\` |
 | \`data-proc\` | \`DP-NNN\`   | \`technical/data-processes/\`| \`dp-NNN.md\`  | \`draft\` · \`active\` · \`deprecated\` |
 | \`db-table\`  | \`TBL-NNN\`  | \`technical/database/\`     | \`tbl-NNN.md\`  | \`draft\` · \`active\` · \`done\` |

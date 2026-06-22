@@ -16,6 +16,7 @@ import { registerHoverProvider } from "./hoverProvider";
 import { SyncTreeDataProvider } from "./syncTree";
 import { getTypeDir } from "./specParser";
 import { ItemType } from "./models";
+import { runPendingMigrations } from "./migrations";
 import {
   fetchRemote,
   stageAndCommitSpec,
@@ -175,6 +176,17 @@ export function activate(context: vscode.ExtensionContext): void {
 
   // Use a placeholder root; provider handles missing workspace gracefully
   const rootPath = getRootPath() ?? "";
+
+  const outputChannel = vscode.window.createOutputChannel("Project Spec");
+  context.subscriptions.push(outputChannel);
+
+  // Run any pending spec folder-structure migrations before loading data
+  if (rootPath) {
+    runPendingMigrations(rootPath, outputChannel).catch((err) => {
+      outputChannel.appendLine(`Migration error: ${err instanceof Error ? err.message : String(err)}`);
+    });
+  }
+
   const provider = new SpecTreeDataProvider(rootPath);
 
   // Register one side panel per section
@@ -699,7 +711,7 @@ The \`type\` field MUST be one of these exact strings. No other values are accep
 | \`sprint\` | \`SPR-NNN\` | \`planning/sprints/\` | \`spr-NNN.md\` | \`planned\` · \`active\` · \`done\` |
 | \`release\` | \`REL-NNN\` | \`planning/releases/\` | \`rel-NNN.md\` | \`draft\` · \`active\` · \`released\` |
 | \`adr\` | \`ADR-NNN\` | \`technical/adr/\` | \`adr-NNN.md\` | \`proposed\` · \`accepted\` · \`deprecated\` · \`superseded\` |
-| \`arch\` | \`ARCH-NNN\` | \`technical/\` | \`arch-NNN.md\` | \`draft\` · \`active\` · \`deprecated\` |
+| \`arch\` | \`ARCH-NNN\` | \`technical/arch/\` | \`arch-NNN.md\` | \`draft\` · \`active\` · \`deprecated\` |
 | \`service\` | \`SRV-NNN\` | \`technical/services/\` | \`srv-NNN.md\` | \`draft\` · \`active\` · \`deprecated\` |
 | \`data-proc\` | \`DP-NNN\` | \`technical/data-processes/\` | \`dp-NNN.md\` | \`draft\` · \`active\` · \`deprecated\` |
 | \`db-table\` | \`TBL-NNN\` | \`technical/database/\` | \`tbl-NNN.md\` | \`draft\` · \`active\` · \`done\` |

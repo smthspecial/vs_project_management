@@ -419,7 +419,7 @@ const TYPE_DOCS: Record<ItemType, string> = {
 
   arch: [
     "## Architecture Doc",
-    "**View:** Technical  |  **ID:** `ARCH-NNN`  |  **File:** `.spec/technical/arch-NNN.md`",
+    "**View:** Technical  |  **ID:** `ARCH-NNN`  |  **File:** `.spec/technical/arch/arch-NNN.md`",
     "",
     "High-level architecture documentation: system diagrams, component maps, and interface definitions.",
     "",
