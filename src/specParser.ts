@@ -6,6 +6,7 @@ import {
   ItemPriority,
   SpecFrontMatter,
   SpecItem,
+  ID_PREFIXES,
 } from "./models";
 
 // ---------------------------------------------------------------------------
@@ -227,46 +228,45 @@ export function readAllSpecItems(rootPath: string): SpecItem[] {
 }
 
 // ---------------------------------------------------------------------------
+// Writing — used by both the "New X" UI commands (which build their own
+// content) and the AI write-file tool (which receives finished content)
+// ---------------------------------------------------------------------------
+
+/**
+ * Writes `content` to `filePath`, refusing to write outside `.spec/`.
+ * `filePath` may be workspace-relative or absolute.
+ */
+export function writeSpecFile(
+  filePath: string,
+  content: string,
+  workspaceRoot: string,
+): string {
+  const specDir = getSpecDir(workspaceRoot);
+  const absPath = path.isAbsolute(filePath)
+    ? filePath
+    : path.join(workspaceRoot, filePath);
+  const resolved = path.resolve(absPath);
+  if (
+    !resolved.startsWith(path.resolve(specDir) + path.sep) &&
+    resolved !== path.resolve(specDir)
+  ) {
+    return `❌ Path must be inside the .spec/ directory. Got: ${filePath}`;
+  }
+
+  const dir = path.dirname(resolved);
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+  fs.writeFileSync(resolved, content, "utf-8");
+  return `✅ File written: ${path.relative(workspaceRoot, resolved)}`;
+}
+
+// ---------------------------------------------------------------------------
 // ID generation
 // ---------------------------------------------------------------------------
 
 export function generateId(items: SpecItem[], type: ItemType): string {
-  const prefix =
-    type === "epic"
-      ? "EPIC"
-      : type === "story"
-        ? "US"
-        : type === "task"
-          ? "TASK"
-          : type === "bug"
-            ? "BUG"
-            : type === "fr"
-              ? "FR"
-              : type === "nfr"
-                ? "NFR"
-                : type === "adr"
-                  ? "ADR"
-                  : type === "arch"
-                    ? "ARCH"
-                    : type === "sprint"
-                      ? "SPR"
-                      : type === "release"
-                        ? "REL"
-                        : type === "db-table"
-                          ? "TBL"
-                          : type === "service"
-                            ? "SRV"
-                            : type === "data-proc"
-                              ? "DP"
-                            : type === "cicd"
-                              ? "CICD"
-                              : type === "auth-spec"
-                                ? "AUTH"
-                                : type === "member"
-                                  ? "MBR"
-                                  : type === "concept"
-                                    ? "CON"
-                                    : "SPEC";
+  const prefix = ID_PREFIXES[type];
 
   const existing = items
     .filter((i) => i.data.type === type)

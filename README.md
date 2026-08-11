@@ -245,20 +245,11 @@ In any `.spec/**/*.md` file, CodeLens actions appear above the front matter:
 
 ## AI Integration
 
-Project Spec ships with two bundled MCP servers and exposes eight language model tools, enabling AI assistants — including GitHub Copilot, Claude Code, and any VS Code AI extension — to read and write your spec directly.
-
-### MCP Servers
-
-Two servers are auto-discovered via `.mcp.json` in your workspace:
-
-| Server | Purpose |
-|---|---|
-| `mcp/server.js` | Full read/write access to spec files |
-| `mcp/vector-server.js` | Semantic search over spec content (requires vector index) |
+Project Spec exposes five language model tools, enabling AI assistants — including GitHub Copilot, Claude Code, and any VS Code AI extension — to read and write your spec directly. There's no MCP server involved; the tools are registered directly with VS Code.
 
 ### Language Model Tools
 
-Eight tools are registered for use by any compatible AI assistant:
+Five tools are registered directly with VS Code's language model tool API (`vscode.lm.registerTool`) and show up automatically in Copilot Chat's tool picker:
 
 | Tool | Description |
 |---|---|
@@ -267,30 +258,6 @@ Eight tools are registered for use by any compatible AI assistant:
 | `project-spec_query` | Filter items by type and/or status |
 | `project-spec_write-file` | Create or overwrite a spec file |
 | `project-spec_validate-file` | Validate a spec file's front matter |
-| `project-spec-vector_semantic-search` | Semantic search over spec content by meaning |
-| `project-spec-vector_get-vector-status` | Check the vector index status per panel |
-| `project-spec-vector_reindex-vector-store` | Rebuild the vector index for one or all panels |
-
-### Semantic Search (Vector Index)
-
-The vector index enables natural-language search across your spec. It requires [Ollama](https://ollama.com) running locally with an embedding model.
-
-**Building the index:**
-
-1. Install Ollama and pull an embedding model (e.g. `ollama pull nomic-embed-text`).
-2. Open VS Code with this extension active.
-3. Run **Reindex All Vector Stores** from the Command Palette — or click the `$(layers)` icon in the Sync panel — to build the index for all panels.
-4. Individual panels can be reindexed via their `$(database)` icon or via the per-panel reindex commands.
-
-**Using search from the terminal or Claude Code:**
-
-```bash
-node mcp/vector-server.js --search "authentication flow"
-node mcp/vector-server.js --search "payment processing" --panel=technical
-node mcp/vector-server.js --search "sprint goals" --panel=sprints --limit=5
-```
-
-Valid `--panel` values: `requirements` · `backlog` · `sprints` · `technical` · `database` · `team` · `concept`
 
 ### Copilot Chat
 
@@ -313,19 +280,26 @@ When you ask Copilot a question about your project, it can call the registered t
 #project-spec_query Show all tasks with status in-progress
 ```
 
-### Initializing Copilot Instructions
+### Initializing AI assistant instructions
 
-Run **Initialize Copilot Instructions** from the Command Palette to generate a `.github/copilot-instructions.md` file in your workspace. This primes Copilot to use the spec tools automatically on every request so you don't have to reference them manually.
+Project Spec generates three files that prime AI assistants to use the tools above automatically, instead of you having to reference them manually each time. Every one of them is **scoped to `.spec/`** rather than claiming a project-wide file — if your project already has (or later adds) its own `AGENTS.md`, `.github/copilot-instructions.md`, or other Skills, nothing here touches them:
+
+| File | Read by | Scope |
+|---|---|---|
+| `.github/instructions/project-spec.instructions.md` | GitHub Copilot, via its `applyTo` path-specific instructions | Only injected when Copilot is working with `.spec/**` files |
+| `.claude/skills/project-spec/SKILL.md` | Claude Code — a `project-spec` Skill it loads automatically whenever a request touches `.spec/` | Additive; coexists with any other Skills the project has |
+| `.spec/AGENTS.md` | Codex CLI and other AGENTS.md-aware agents, via the "closest file wins" AGENTS.md convention | Only governs work inside `.spec/`; a project-root `AGENTS.md` is unaffected |
+
+All three are written automatically the first time the extension activates in a workspace that already has a `.spec/` folder (skipped if a file already exists, so local edits are never clobbered). To force-regenerate all three from the current templates, run **Regenerate AI Assistant Instructions** from the Command Palette.
 
 ---
 
 ## Using with Claude Code
 
-If you use [Claude Code](https://claude.ai/code), the MCP servers in `.mcp.json` are auto-loaded. Claude will:
+If you use [Claude Code](https://claude.ai/code), the `project-spec` Skill (above) teaches it the schema — no MCP server or special tool required, just its normal file tools. Claude will:
 
-1. Run semantic search first to find relevant spec content by meaning.
-2. Use `read_spec` or `query` to check existing IDs before creating new items.
-3. Write and validate new spec files using `write_file` and `validate_file`.
+1. Grep or Glob `.spec/` directly to check existing IDs and avoid duplicates before creating new items.
+2. Write new spec files directly, then re-check them against the Skill's Key Rules by hand.
 
 You can interact naturally:
 
@@ -337,17 +311,22 @@ You can interact naturally:
 
 ---
 
+## Using with Codex (and other AGENTS.md-aware agents)
+
+`.spec/AGENTS.md` (above) documents the same 17-type registry and creation workflow as the Copilot and Claude files, without assuming any Claude-specific features. It's placed inside `.spec/` rather than at the project root: AGENTS.md is a nested, "closest file wins" convention, so this file governs only work inside `.spec/` and leaves a project-root `AGENTS.md` — for the rest of your codebase — untouched.
+
+---
+
 ## Release Notes
 
 ### 0.0.11
 - Concept panel with six sub-types (history, goals, principles, risks, system design, system implementation)
 - Sync panel with built-in Git operations scoped to `.spec/`
-- Vector search via bundled `mcp/vector-server.js` and Ollama
-- Eight AI language model tools (read, write, validate, query, search, reindex)
+- Five AI language model tools (read, write, validate, query, schema) for Copilot and other VS Code AI extensions
+- Generated Copilot/Claude/Codex instruction files, kept in sync from one shared schema
 - New document types: Data Process, CI/CD Pipeline, Auth Specification, Service
 - New Team Member document type
 - Direct commands to open Board, Timeline, and Database views
-- Initialize Copilot Instructions command
 
 ### 0.0.1
 Initial release — requirements, backlog, sprints, technical docs, database schema, team, visual board, timeline, dependency graph, and Copilot integration.

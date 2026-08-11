@@ -1,77 +1,22 @@
 # Project Spec — Claude Code Instructions
 
-## MANDATORY: Use vector search before touching any spec files
+This workspace uses the **Project Spec** VS Code extension. All project documentation lives in the `.spec/` folder as YAML front-matter Markdown files. There's no MCP server and no special read/write/search tool — use your normal Read/Write/Edit/Grep/Glob tools directly on `.spec/`, guided by the Type Registry below.
 
-**Every time** you need to find, understand, or check existing spec content — run this first:
+## Finding existing spec content
 
-```bash
-node mcp/vector-server.js --search "your query" [--panel=<panel>] [--limit=10]
-```
+Before creating a new item, check whether one already exists:
 
-Valid panels: `requirements` · `backlog` · `sprints` · `technical` · `database` · `team` · `concept`
-
-- Do **NOT** use an Agent, grep, or `read_spec` as the first step for discovery.
-- Do **NOT** read `.spec/` files directly until vector search has been tried.
-- If the command returns "No index found" → tell the user to click `$(layers)` in the VS Code Sync panel to build the index, then retry.
-- Only fall back to `read_spec` when vector search returns no results or the index isn't built.
-
----
-
-This workspace uses the **Project Spec** VS Code extension. All project documentation lives in the `.spec/` folder as YAML front-matter Markdown files.
-
-Two MCP servers are bundled and auto-discovered via `.mcp.json`:
-- `mcp/server.js` — read/write access to spec files
-- `mcp/vector-server.js` — semantic search over spec content (requires Ollama + index built via VS Code)
-
----
-
-## Available MCP tools
-
-### Spec file tools (`project-spec` server)
-
-| Tool | Purpose |
-|------|---------|
-| `read_spec` | Read all spec items across every type — use this first to see existing IDs |
-| `get_schema` | Get the full schema reference: fields, statuses, relations, body templates |
-| `query` | Filter items by `type` and/or `status` |
-| `write_file` | Create or overwrite a `.spec/` file |
-| `validate_file` | Validate a spec file after writing |
-| `read_file` | Read the raw content of a single spec file |
-
-### Semantic search — ALWAYS use this before reading spec files manually
-
-**This is the primary way to find spec content. Use it before `read_spec`, `query`, or any file reads.**
-
-The vector index lives at `.spec/.vector-index/`. Use this Bash command directly — it works even if the MCP server isn't loaded:
-
-```bash
-node mcp/vector-server.js --search "your query here"
-# with panel filter:
-node mcp/vector-server.js --search "your query here" --panel=technical
-# with result limit:
-node mcp/vector-server.js --search "your query here" --limit=10
-```
-
-Valid panel values: `requirements` · `backlog` · `sprints` · `technical` · `database` · `team` · `concept`
-
-**When to run this:**
-- Any time the user asks about existing requirements, decisions, architecture, or features
-- Before creating new items — check for duplicates first
-- When the user says "find", "search", "what do we have on", "is there a spec for"
-- Before answering any question that might be addressed in the spec
-
-**If it returns "No index found":** tell the user to click the `$(database)` icon in the relevant VS Code sidebar panel (or `$(layers)` in the Sync panel to reindex everything), then retry.
-
-**If the MCP tools `semantic_search` / `reindex_vector_store` / `get_vector_status` appear in your tool list**, prefer those over the bash command — same functionality, cleaner output.
+- `Grep` for keywords across `.spec/**/*.md`, or `Glob` a specific type's directory (e.g. `.spec/backlog/epics/*.md`) when you already know the type.
+- Check `linkedIds` / `dependsOn` / `epicId` / `storyId` front matter to trace relationships between items.
 
 ---
 
 ## Workflow for creating spec items
 
-1. **Call `get_schema`** to get the correct front-matter fields, directory path, and ID conventions for the target type.
-2. **Call `read_spec`** (or `query`) to find existing IDs and determine the next available sequential number.
-3. **Call `write_file`** with the workspace-relative path (e.g. `.spec/backlog/epics/epic-004.md`) and the full file content.
-4. **Call `validate_file`** with the same path to confirm the file is valid before moving on.
+1. Check the **Type Registry** below for the correct front-matter fields, directory path, file name, and ID convention for the target type.
+2. List existing files of that type (e.g. `ls .spec/backlog/epics/`) to find existing IDs and determine the next available sequential number.
+3. Write the file directly at its workspace-relative path (e.g. `.spec/backlog/epics/epic-004.md`).
+4. Re-read the file and check it against **Key Rules** below before moving on — there's no separate validation tool, so this pass is on you.
 
 ---
 
@@ -170,4 +115,4 @@ ADR/arch/service/cicd/auth-spec — standalone technical docs
 - `epicId` is **required** on every story.
 - `storyId` is **required** on every task and bug.
 - `role` is **required** on every member.
-- Always run `validate_file` after writing a new or edited spec file.
+- There's no validation tool — re-read what you wrote and check it against these rules by hand.

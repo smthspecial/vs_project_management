@@ -27,6 +27,11 @@ import {
   RELEASE_STATUSES,
   CONCEPT_STATUSES,
 } from "./models";
+import {
+  BODY_TEMPLATES,
+  memberBodyTemplate,
+  CONCEPT_SECTION_META,
+} from "./specBodyTemplates";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -111,10 +116,7 @@ async function createEpic(
     created: today(),
   });
 
-  const body =
-    `## Overview\n\nDescribe the goal and scope of this epic.\n\n` +
-    `## Goals\n\n- \n\n` +
-    `## Out of Scope\n\n- \n`;
+  const body = BODY_TEMPLATES.epic!(title.trim());
 
   fs.writeFileSync(filePath, frontMatter + body, "utf-8");
   provider.refresh();
@@ -181,10 +183,7 @@ async function createStory(
     created: today(),
   });
 
-  const body =
-    `## Description\n\n${title.trim()}\n\n` +
-    `## Acceptance Criteria\n\n- [ ] \n\n` +
-    `## Notes\n\n`;
+  const body = BODY_TEMPLATES.story!(title.trim());
 
   fs.writeFileSync(filePath, frontMatter + body, "utf-8");
   provider.refresh();
@@ -260,16 +259,7 @@ async function createTaskOrBug(
     created: today(),
   });
 
-  const body =
-    itemType === "bug"
-      ? `## Description\n\n${title.trim()}\n\n` +
-        `## Steps to Reproduce\n\n1. \n2. \n\n` +
-        `## Expected Behavior\n\n\n\n` +
-        `## Actual Behavior\n\n\n\n` +
-        `## Notes\n\n`
-      : `## Description\n\n${title.trim()}\n\n` +
-        `## Subtasks\n\n- [ ] \n\n` +
-        `## Notes\n\n`;
+  const body = BODY_TEMPLATES[itemType]!(title.trim());
 
   fs.writeFileSync(filePath, frontMatter + body, "utf-8");
   provider.refresh();
@@ -428,16 +418,7 @@ async function createRequirement(
     created: today(),
   });
 
-  const body =
-    reqType === "fr"
-      ? `## Description\n\n${title.trim()}\n\n` +
-        `## Acceptance Criteria\n\n- [ ] \n\n` +
-        `## Linked Items\n\n` +
-        `<!-- Set \`linkedIds: US-001,TASK-001\` in front matter to link stories/tasks -->\n`
-      : `## Description\n\n${title.trim()}\n\n` +
-        `## Metric\n\n- Target: \n- Measurement: \n\n` +
-        `## Linked Items\n\n` +
-        `<!-- Set \`linkedIds: US-001,TASK-001\` in front matter to link stories/tasks -->\n`;
+  const body = BODY_TEMPLATES[reqType]!(title.trim());
 
   fs.writeFileSync(filePath, frontMatter + body, "utf-8");
   provider.refresh();
@@ -479,11 +460,7 @@ async function createAdr(
     created: today(),
   });
 
-  const body =
-    `## Context\n\nDescribe the context and problem statement.\n\n` +
-    `## Decision\n\nDescribe the decision made.\n\n` +
-    `## Consequences\n\n### Positive\n\n- \n\n### Negative\n\n- \n\n` +
-    `## Alternatives Considered\n\n- \n`;
+  const body = BODY_TEMPLATES.adr!(title.trim());
 
   fs.writeFileSync(filePath, frontMatter + body, "utf-8");
   provider.refresh();
@@ -521,11 +498,7 @@ async function createArch(
     created: today(),
   });
 
-  const body =
-    `## Overview\n\nDescribe this architectural component.\n\n` +
-    `## Diagram\n\n\`\`\`\n<!-- Add diagram here -->\n\`\`\`\n\n` +
-    `## Components\n\n- \n\n` +
-    `## Interfaces\n\n- \n`;
+  const body = BODY_TEMPLATES.arch!(title.trim());
 
   fs.writeFileSync(filePath, frontMatter + body, "utf-8");
   provider.refresh();
@@ -563,12 +536,7 @@ async function createTechSpec(
     created: today(),
   });
 
-  const body =
-    `## Overview\n\nDescribe this technical component.\n\n` +
-    `## API / Interface\n\n\`\`\`\n<!-- Define the API/interface -->\n\`\`\`\n\n` +
-    `## Data Model\n\n- \n\n` +
-    `## Dependencies\n\n- \n\n` +
-    `## Error Handling\n\n- \n`;
+  const body = BODY_TEMPLATES.service!(title.trim());
 
   fs.writeFileSync(filePath, frontMatter + body, "utf-8");
   provider.refresh();
@@ -614,11 +582,7 @@ async function createDataProc(
     processType: processType as "sync" | "async" | "cron",
   });
 
-  const body =
-    `## Overview\n\nDescribe this data process: purpose, inputs, and outputs.\n\n` +
-    `## Data Flow\n\nInput → Transformation → Output\n\n` +
-    `## Steps\n\n1. \n\n` +
-    `## Error Handling\n\n- \n`;
+  const body = BODY_TEMPLATES["data-proc"]!(title.trim());
 
   fs.writeFileSync(filePath, frontMatter + body, "utf-8");
   provider.refresh();
@@ -683,9 +647,7 @@ async function createSprint(
     created: today(),
   });
 
-  const body =
-    `## Goal\n\n${title.trim()}\n\n` +
-    `## Stories\n\n<!-- Stories assigned to this sprint will appear here -->\n`;
+  const body = BODY_TEMPLATES.sprint!(title.trim());
 
   fs.writeFileSync(filePath, frontMatter + body, "utf-8");
   provider.refresh();
@@ -739,10 +701,7 @@ async function createRelease(
     created: today(),
   });
 
-  const body =
-    `## Overview\n\n${title.trim()}\n\n` +
-    `## What's Included\n\n<!-- Stories and tasks in this release -->\n\n` +
-    `## Release Notes\n\n- \n`;
+  const body = BODY_TEMPLATES.release!(title.trim());
 
   fs.writeFileSync(filePath, frontMatter + body, "utf-8");
   provider.refresh();
@@ -943,12 +902,7 @@ async function createTable(
     created: today(),
   });
 
-  const body =
-    `## Description\n\n${title.trim()} table.\n\n` +
-    `## Columns\n\n` +
-    `| Column | Type | Constraints |\n` +
-    `|--------|------|-------------|\n` +
-    `| id | uuid | PK |\n`;
+  const body = BODY_TEMPLATES["db-table"]!(title.trim());
 
   fs.writeFileSync(filePath, frontMatter + body, "utf-8");
   provider.refresh();
@@ -990,11 +944,7 @@ async function createCicd(
     created: today(),
   });
 
-  const body =
-    `## Overview\n\nDescribe this pipeline.\n\n` +
-    `## Stages\n\n1. \n\n` +
-    `## Triggers\n\n- \n\n` +
-    `## Notifications\n\n- \n`;
+  const body = BODY_TEMPLATES.cicd!(title.trim());
 
   fs.writeFileSync(filePath, frontMatter + body, "utf-8");
   provider.refresh();
@@ -1036,11 +986,7 @@ async function createAuthSpec(
     created: today(),
   });
 
-  const body =
-    `## Overview\n\nDescribe the authentication or authorization design.\n\n` +
-    `## Roles\n\n| Role | Description |\n|------|-------------|\n| | |\n\n` +
-    `## Authorization Matrix\n\n| Resource | Role |\n|----------|------|\n| | |\n\n` +
-    `## Enforcement\n\n- \n`;
+  const body = BODY_TEMPLATES["auth-spec"]!(title.trim());
 
   fs.writeFileSync(filePath, frontMatter + body, "utf-8");
   provider.refresh();
@@ -1092,7 +1038,7 @@ async function createMember(
     created: today(),
   });
 
-  const body = `## Bio\n\n${title.trim()} — ${role.trim()} engineer.\n`;
+  const body = memberBodyTemplate(title.trim(), role.trim());
 
   fs.writeFileSync(filePath, frontMatter + body, "utf-8");
   provider.refresh();
@@ -1360,42 +1306,6 @@ function checkEpicRollup(
 // ---------------------------------------------------------------------------
 // Concept documents
 // ---------------------------------------------------------------------------
-
-const CONCEPT_SECTION_META: Record<
-  string,
-  { label: string; subdir: string; body: string }
-> = {
-  history: {
-    label: "History & Problem",
-    subdir: "concept/history",
-    body: `## Background\n\nDescribe the history and context of the problem.\n\n## Problem Statement\n\n- \n\n## Why It Matters\n\n- \n`,
-  },
-  goals: {
-    label: "Goals",
-    subdir: "concept/goals",
-    body: `## Goals\n\n- \n\n## Non-Goals\n\n- \n\n## Success Criteria\n\n- \n`,
-  },
-  principles: {
-    label: "Core Principles",
-    subdir: "concept/principles",
-    body: `## Principles\n\n- \n\n## Rationale\n\n- \n`,
-  },
-  risks: {
-    label: "Risks & Obstacles",
-    subdir: "concept/risks",
-    body: `## Risks\n\n| Risk | Likelihood | Impact | Mitigation |\n|------|-----------|--------|------------|\n| | | | |\n\n## Obstacles\n\n- \n`,
-  },
-  sysdesign: {
-    label: "System Design",
-    subdir: "concept/sysdesign",
-    body: `## Overview\n\nDescribe the system design.\n\n## Diagram\n\n\`\`\`\n<!-- Add diagram here -->\n\`\`\`\n\n## Components\n\n- \n\n## Data Flow\n\n- \n`,
-  },
-  sysimpl: {
-    label: "System Implementation",
-    subdir: "concept/sysimpl",
-    body: `## Overview\n\nDescribe the implementation approach.\n\n## Steps\n\n1. \n\n## Dependencies\n\n- \n\n## Rollout\n\n- \n`,
-  },
-};
 
 async function createConceptDoc(
   section: string,

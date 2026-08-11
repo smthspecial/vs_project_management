@@ -101,3 +101,71 @@ export const AUTH_SPEC_STATUSES: ItemStatus[] = [
   "deprecated",
 ];
 export const CONCEPT_STATUSES: ItemStatus[] = ["draft", "active", "deprecated"];
+export const DB_TABLE_STATUSES: ItemStatus[] = ["draft", "active", "done"];
+
+// ---------------------------------------------------------------------------
+// Type registry — the canonical, exhaustive list of item types plus the
+// per-type facts derived from it (ID prefix, valid statuses). Anything that
+// needs to enumerate or validate against "all types" should use these
+// instead of re-declaring its own copy.
+// ---------------------------------------------------------------------------
+
+export const ALL_TYPES: ItemType[] = [
+  "epic",
+  "story",
+  "task",
+  "bug",
+  "fr",
+  "nfr",
+  "adr",
+  "arch",
+  "service",
+  "data-proc",
+  "db-table",
+  "cicd",
+  "auth-spec",
+  "sprint",
+  "release",
+  "member",
+  "concept",
+];
+
+export const ID_PREFIXES: Record<ItemType, string> = {
+  epic: "EPIC",
+  story: "US",
+  task: "TASK",
+  bug: "BUG",
+  fr: "FR",
+  nfr: "NFR",
+  adr: "ADR",
+  arch: "ARCH",
+  service: "SRV",
+  "data-proc": "DP",
+  "db-table": "TBL",
+  sprint: "SPR",
+  release: "REL",
+  cicd: "CICD",
+  "auth-spec": "AUTH",
+  member: "MBR",
+  concept: "CON",
+};
+
+export const VALID_STATUSES: Record<ItemType, ItemStatus[]> = {
+  epic: EPIC_STATUSES,
+  story: STORY_STATUSES,
+  task: TASK_STATUSES,
+  bug: TASK_STATUSES,
+  fr: FR_NFR_STATUSES,
+  nfr: FR_NFR_STATUSES,
+  adr: ADR_STATUSES,
+  arch: TECH_STATUSES,
+  service: TECH_STATUSES,
+  "data-proc": TECH_STATUSES,
+  "db-table": DB_TABLE_STATUSES,
+  cicd: CICD_STATUSES,
+  "auth-spec": AUTH_SPEC_STATUSES,
+  sprint: SPRINT_STATUSES,
+  release: RELEASE_STATUSES,
+  member: MEMBER_STATUSES,
+  concept: CONCEPT_STATUSES,
+};

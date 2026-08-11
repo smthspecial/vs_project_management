@@ -274,57 +274,9 @@
         "category": "Project Spec"
       },
       {
-        "command": "project-spec.initCopilotInstructions",
-        "title": "Initialize Copilot Instructions",
+        "command": "project-spec.initAiInstructions",
+        "title": "Regenerate AI Assistant Instructions",
         "icon": "$(sparkle)",
-        "category": "Project Spec"
-      },
-      {
-        "command": "project-spec.reindexVectorRequirements",
-        "title": "Reindex Requirements Vector Store",
-        "icon": "$(database)",
-        "category": "Project Spec"
-      },
-      {
-        "command": "project-spec.reindexVectorBacklog",
-        "title": "Reindex Backlog Vector Store",
-        "icon": "$(database)",
-        "category": "Project Spec"
-      },
-      {
-        "command": "project-spec.reindexVectorSprints",
-        "title": "Reindex Sprints Vector Store",
-        "icon": "$(database)",
-        "category": "Project Spec"
-      },
-      {
-        "command": "project-spec.reindexVectorTechnical",
-        "title": "Reindex Technical Vector Store",
-        "icon": "$(database)",
-        "category": "Project Spec"
-      },
-      {
-        "command": "project-spec.reindexVectorDatabase",
-        "title": "Reindex Database Vector Store",
-        "icon": "$(database)",
-        "category": "Project Spec"
-      },
-      {
-        "command": "project-spec.reindexVectorTeam",
-        "title": "Reindex Team Vector Store",
-        "icon": "$(database)",
-        "category": "Project Spec"
-      },
-      {
-        "command": "project-spec.reindexVectorConcept",
-        "title": "Reindex Concept Vector Store",
-        "icon": "$(database)",
-        "category": "Project Spec"
-      },
-      {
-        "command": "project-spec.reindexVectorAll",
-        "title": "Reindex All Vector Stores",
-        "icon": "$(layers)",
         "category": "Project Spec"
       },
       {
@@ -366,34 +318,6 @@
     ],
     "menus": {
       "commandPalette": [
-        {
-          "command": "project-spec.reindexVectorRequirements",
-          "when": "false"
-        },
-        {
-          "command": "project-spec.reindexVectorBacklog",
-          "when": "false"
-        },
-        {
-          "command": "project-spec.reindexVectorSprints",
-          "when": "false"
-        },
-        {
-          "command": "project-spec.reindexVectorTechnical",
-          "when": "false"
-        },
-        {
-          "command": "project-spec.reindexVectorDatabase",
-          "when": "false"
-        },
-        {
-          "command": "project-spec.reindexVectorTeam",
-          "when": "false"
-        },
-        {
-          "command": "project-spec.reindexVectorConcept",
-          "when": "false"
-        },
         {
           "command": "project-spec.openPlanning",
           "when": "false"
@@ -477,46 +401,6 @@
           "command": "project-spec.newMember",
           "when": "view == projectSpecTeamTree",
           "group": "navigation@1"
-        },
-        {
-          "command": "project-spec.reindexVectorRequirements",
-          "when": "view == projectSpecRequirementsTree",
-          "group": "navigation@7"
-        },
-        {
-          "command": "project-spec.reindexVectorBacklog",
-          "when": "view == projectSpecBacklogTree",
-          "group": "navigation@7"
-        },
-        {
-          "command": "project-spec.reindexVectorSprints",
-          "when": "view == projectSpecSprintsTree",
-          "group": "navigation@7"
-        },
-        {
-          "command": "project-spec.reindexVectorTechnical",
-          "when": "view == projectSpecTechnicalTree",
-          "group": "navigation@7"
-        },
-        {
-          "command": "project-spec.reindexVectorDatabase",
-          "when": "view == projectSpecDatabaseTree",
-          "group": "navigation@7"
-        },
-        {
-          "command": "project-spec.reindexVectorTeam",
-          "when": "view == projectSpecTeamTree",
-          "group": "navigation@7"
-        },
-        {
-          "command": "project-spec.reindexVectorConcept",
-          "when": "view == projectSpecConceptTree",
-          "group": "navigation@7"
-        },
-        {
-          "command": "project-spec.reindexVectorAll",
-          "when": "view == projectSpecSyncTree",
-          "group": "navigation@5"
         },
         {
           "command": "project-spec.refresh",
@@ -804,82 +688,6 @@
             "filePath",
             "content"
           ]
-        }
-      },
-      {
-        "name": "project-spec-vector_semantic-search",
-        "toolReferenceName": "project-spec-vector_semantic-search",
-        "displayName": "Search Project Specs by Meaning",
-        "modelDescription": "Search the project specification by meaning using semantic vectors. Returns specs ranked by relevance. Use this FIRST before calling read-spec to find existing requirements, decisions, architecture docs, or any content by meaning (e.g. 'authentication flow', 'performance requirements', 'data processing'). Much faster than reading all specs.",
-        "canBeReferencedInPrompt": true,
-        "icon": "$(search)",
-        "tags": [
-          "project-spec",
-          "semantic-search",
-          "vector-search",
-          "find",
-          "discovery"
-        ],
-        "inputSchema": {
-          "type": "object",
-          "properties": {
-            "query": {
-              "type": "string",
-              "description": "Natural language search query (e.g. 'user authentication', 'performance', 'data pipeline')"
-            },
-            "panel": {
-              "type": "string",
-              "description": "Restrict search to one panel: requirements, backlog, sprints, technical, database, team, concept. Omit to search all."
-            },
-            "limit": {
-              "type": "number",
-              "description": "Maximum results to return (default 5, max 20)"
-            }
-          },
-          "required": [
-            "query"
-          ]
-        }
-      },
-      {
-        "name": "project-spec-vector_get-vector-status",
-        "toolReferenceName": "project-spec-vector_get-vector-status",
-        "displayName": "Get Vector Index Status",
-        "modelDescription": "Returns the current state of all vector indexes: when each was last built, file/chunk counts, and which embedding model was used. Use this to check if semantic search is available.",
-        "canBeReferencedInPrompt": true,
-        "icon": "$(database)",
-        "tags": [
-          "project-spec",
-          "vector-search",
-          "status",
-          "index"
-        ],
-        "inputSchema": {
-          "type": "object",
-          "properties": {}
-        }
-      },
-      {
-        "name": "project-spec-vector_reindex-vector-store",
-        "toolReferenceName": "project-spec-vector_reindex-vector-store",
-        "displayName": "Reindex Vector Store",
-        "modelDescription": "Rebuild the semantic vector index. Specify 'panel' to reindex only that panel (requirements, backlog, sprints, technical, database, team, concept). Omit 'panel' to reindex all panels. Requires Ollama running locally with nomic-embed-text model.",
-        "canBeReferencedInPrompt": true,
-        "icon": "$(database)",
-        "tags": [
-          "project-spec",
-          "vector-search",
-          "reindex",
-          "maintenance"
-        ],
-        "inputSchema": {
-          "type": "object",
-          "properties": {
-            "panel": {
-              "type": "string",
-              "description": "Restrict reindex to one panel: requirements, backlog, sprints, technical, database, team, concept. Omit to reindex all."
-            }
-          }
         }
       }
     ]
