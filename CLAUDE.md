@@ -20,7 +20,7 @@ Before creating a new item, check whether one already exists:
 
 ---
 
-## TYPE REGISTRY — the only 17 valid document types
+## TYPE REGISTRY — the only 18 valid document types
 
 The `type` field MUST be one of these exact strings. No other values are accepted.
 Never invent types — `spec`, `technical-spec`, `service-spec`, `auth`, `tech-spec` are all invalid.
@@ -42,6 +42,7 @@ Never invent types — `spec`, `technical-spec`, `service-spec`, `auth`, `tech-s
 | `db-table` | `TBL-NNN` | `technical/database/` | `tbl-NNN.md` | `draft` · `active` · `done` |
 | `cicd` | `CICD-NNN` | `technical/cicd/` | `cicd-NNN.md` | `draft` · `active` · `deprecated` |
 | `auth-spec` | `AUTH-NNN` | `technical/auth/` | `auth-NNN.md` | `draft` · `active` · `deprecated` |
+| `test-plan` | `TP-NNN` | `technical/test-plans/` | `tp-NNN.md` | `draft` · `active` · `deprecated` |
 | `member` | `MBR-NNN` | `team/members/` | `mbr-NNN.md` | `active` · `draft` |
 | `concept` | `CON-NNN` | `concept/{section}/` | `con-NNN.md` | `draft` · `active` · `deprecated` |
 
@@ -55,7 +56,7 @@ For `concept`, `{section}` ∈ `history` · `goals` · `principles` · `risks` �
 ### Required fields (every type)
 ```yaml
 id: EPIC-001        # uppercase — prefix from the Type Registry above
-type: epic          # MUST be one of the 17 exact strings from the Type Registry
+type: epic          # MUST be one of the 18 exact strings from the Type Registry
 title: "My title"   # MUST be in double quotes
 status: draft       # MUST be one of the valid statuses for this type (see Type Registry)
 created: 2026-01-15 # ISO date YYYY-MM-DD
@@ -78,6 +79,7 @@ dueDate: 2026-01-28     # ISO date YYYY-MM-DD
 releaseDate: 2026-06-30 # ISO date YYYY-MM-DD (release only)
 relations: userId:TBL-001,orderId:TBL-002  # FK refs (db-table only, NO spaces)
 processType: async                         # data-proc — sync | async | cron (REQUIRED on data-proc)
+testScope: e2e                             # test-plan — integration | e2e (REQUIRED on test-plan)
 ```
 
 ---
@@ -99,15 +101,16 @@ Epic ◄──epicId── Story ◄──storyId── Task/Bug
 
 db-table ──relations──► db-table   (FK references)
 
-ADR/arch/service/cicd/auth-spec — standalone technical docs
+ADR/arch/service/cicd/auth-spec/test-plan — standalone technical docs
   └─ may use dependsOn to reference tasks or other items
+  └─ test-plan may use linkedIds to reference the story/epic it covers
 ```
 
 ---
 
 ## Key rules
 
-- **type is strictly enforced** — only the 17 exact strings in the Type Registry are valid. Never invent types.
+- **type is strictly enforced** — only the 18 exact strings in the Type Registry are valid. Never invent types.
 - **Never** change an existing `id` — IDs are immutable.
 - `title` must always be in double quotes in the front matter.
 - Comma-separated fields (`linkedIds`, `dependsOn`, `relations`) must have **no spaces** around commas.
@@ -115,4 +118,6 @@ ADR/arch/service/cicd/auth-spec — standalone technical docs
 - `epicId` is **required** on every story.
 - `storyId` is **required** on every task and bug.
 - `role` is **required** on every member.
+- `processType` (`sync` | `async` | `cron`) is **required** on every `data-proc`.
+- `testScope` (`integration` | `e2e`) is **required** on every `test-plan`.
 - There's no validation tool — re-read what you wrote and check it against these rules by hand.

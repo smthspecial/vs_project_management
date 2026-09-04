@@ -31,7 +31,8 @@ export type ItemType =
   | "cicd"
   | "auth-spec"
   | "concept"
-  | "data-proc";
+  | "data-proc"
+  | "test-plan";
 
 export interface SpecFrontMatter {
   id: string;
@@ -66,6 +67,8 @@ export interface SpecFrontMatter {
   role?: string;
   /** Process type for data-proc — sync | async | cron */
   processType?: "sync" | "async" | "cron";
+  /** Test scope for test-plan — integration | e2e */
+  testScope?: "integration" | "e2e";
 }
 
 export interface SpecItem {
@@ -128,6 +131,7 @@ export const ALL_TYPES: ItemType[] = [
   "release",
   "member",
   "concept",
+  "test-plan",
 ];
 
 export const ID_PREFIXES: Record<ItemType, string> = {
@@ -148,6 +152,7 @@ export const ID_PREFIXES: Record<ItemType, string> = {
   "auth-spec": "AUTH",
   member: "MBR",
   concept: "CON",
+  "test-plan": "TP",
 };
 
 export const VALID_STATUSES: Record<ItemType, ItemStatus[]> = {
@@ -168,4 +173,5 @@ export const VALID_STATUSES: Record<ItemType, ItemStatus[]> = {
   release: RELEASE_STATUSES,
   member: MEMBER_STATUSES,
   concept: CONCEPT_STATUSES,
+  "test-plan": TECH_STATUSES,
 };

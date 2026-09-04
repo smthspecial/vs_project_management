@@ -39,7 +39,7 @@ This workspace uses the **Project Spec** VS Code extension. All project document
 4. Write the file with `project-spec_write-file` using workspace-relative path (e.g. `.spec/backlog/epics/epic-004.md`)
 5. Call `project-spec_validate-file` to confirm the file is valid
 
-## TYPE REGISTRY — the only 17 valid document types
+## TYPE REGISTRY — the only 18 valid document types
 
 The `type` field MUST be one of these exact strings. No other values are accepted — never invent types.
 
@@ -60,6 +60,7 @@ The `type` field MUST be one of these exact strings. No other values are accepte
 | `db-table` | `TBL-NNN` | `technical/database/` | `tbl-NNN.md` | `draft` · `active` · `done` |
 | `cicd` | `CICD-NNN` | `technical/cicd/` | `cicd-NNN.md` | `draft` · `active` · `deprecated` |
 | `auth-spec` | `AUTH-NNN` | `technical/auth/` | `auth-NNN.md` | `draft` · `active` · `deprecated` |
+| `test-plan` | `TP-NNN` | `technical/test-plans/` | `tp-NNN.md` | `draft` · `active` · `deprecated` |
 | `member` | `MBR-NNN` | `team/members/` | `mbr-NNN.md` | `active` · `draft` |
 | `concept` | `CON-NNN` | `concept/{section}/` | `con-NNN.md` | `draft` · `active` · `deprecated` |
 
@@ -68,12 +69,13 @@ For `concept`, `{section}` ∈ `history` · `goals` · `principles` · `risks` �
 
 ## Key rules
 
-- **type is strictly enforced** — only the 17 exact strings above are valid. Specifically invalid: `spec`, `technical-spec`, `service-spec`, `auth`, `tech-spec`, `architecture`.
+- **type is strictly enforced** — only the 18 exact strings above are valid. Specifically invalid: `spec`, `technical-spec`, `service-spec`, `auth`, `tech-spec`, `architecture`.
 - **Never** change an existing `id` field — IDs are immutable.
 - `title` must always be enclosed in double quotes in front matter.
 - `epicId` is required on every story; `storyId` is required on every task and bug.
 - `role` is required on every member.
 - `processType` (sync | async | cron) is required on every `data-proc` document.
+- `testScope` (integration | e2e) is required on every `test-plan` document.
 - Comma-separated fields (`linkedIds`, `dependsOn`, `relations`) must have NO spaces around commas.
 - Dates must be `YYYY-MM-DD` only.
 - Always call `project-spec_validate-file` after writing a spec file.

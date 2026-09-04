@@ -1,4 +1,4 @@
-// Single source of truth for the "17 document types" table and the key
+// Single source of truth for the "18 document types" table and the key
 // authoring rules, reused by every AI-facing surface: the `get_schema`
 // language model tool, the generated Copilot/Claude/Codex instruction files,
 // and CLAUDE.md's own copy (kept in sync by hand since Claude Code reads
@@ -26,16 +26,17 @@ export const TYPE_REGISTRY_TABLE = `\
 | \`db-table\` | \`TBL-NNN\` | \`technical/database/\` | \`tbl-NNN.md\` | \`draft\` · \`active\` · \`done\` |
 | \`cicd\` | \`CICD-NNN\` | \`technical/cicd/\` | \`cicd-NNN.md\` | \`draft\` · \`active\` · \`deprecated\` |
 | \`auth-spec\` | \`AUTH-NNN\` | \`technical/auth/\` | \`auth-NNN.md\` | \`draft\` · \`active\` · \`deprecated\` |
+| \`test-plan\` | \`TP-NNN\` | \`technical/test-plans/\` | \`tp-NNN.md\` | \`draft\` · \`active\` · \`deprecated\` |
 | \`member\` | \`MBR-NNN\` | \`team/members/\` | \`mbr-NNN.md\` | \`active\` · \`draft\` |
 | \`concept\` | \`CON-NNN\` | \`concept/{section}/\` | \`con-NNN.md\` | \`draft\` · \`active\` · \`deprecated\` |
 
 \`NNN\` = zero-padded 3-digit number (001, 002, …). For \`concept\`, \`{section}\` ∈ \`history\` · \`goals\` · \`principles\` · \`risks\` · \`sysdesign\` · \`sysimpl\`.`;
 
 export const KEY_RULES = `\
-- \`type\` is strictly enforced — only the 17 exact strings above are valid. Never invent types (\`spec\`, \`technical-spec\`, \`service-spec\`, \`auth\`, \`tech-spec\` are all invalid).
+- \`type\` is strictly enforced — only the 18 exact strings above are valid. Never invent types (\`spec\`, \`technical-spec\`, \`service-spec\`, \`auth\`, \`tech-spec\` are all invalid).
 - Never change an existing \`id\` — IDs are immutable.
 - \`title\` must always be in double quotes in the front matter.
 - \`epicId\` is required on every story; \`storyId\` is required on every task and bug.
-- \`role\` is required on every member; \`processType\` (\`sync\` | \`async\` | \`cron\`) is required on every \`data-proc\`.
+- \`role\` is required on every member; \`processType\` (\`sync\` | \`async\` | \`cron\`) is required on every \`data-proc\`; \`testScope\` (\`integration\` | \`e2e\`) is required on every \`test-plan\`.
 - Comma-separated fields (\`linkedIds\`, \`dependsOn\`, \`relations\`) must have no spaces around commas.
 - Dates must be \`YYYY-MM-DD\` only.`;

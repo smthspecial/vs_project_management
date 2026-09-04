@@ -220,6 +220,12 @@
         "category": "Project Spec"
       },
       {
+        "command": "project-spec.newTestPlan",
+        "title": "New Test Plan",
+        "icon": "$(add)",
+        "category": "Project Spec"
+      },
+      {
         "command": "project-spec.newMember",
         "title": "New Team Member",
         "icon": "$(add)",
@@ -471,7 +477,7 @@
         },
         {
           "command": "project-spec.changeStatus",
-          "when": "view =~ /^projectSpec.*Tree$/ && viewItem =~ /^(epic|story|task|bug|fr|nfr|adr|arch|service|data-proc|sprint|release|cicd|auth-spec|member|concept)$/",
+          "when": "view =~ /^projectSpec.*Tree$/ && viewItem =~ /^(epic|story|task|bug|fr|nfr|adr|arch|service|data-proc|sprint|release|cicd|auth-spec|member|concept|test-plan)$/",
           "group": "1_actions@1"
         },
         {
@@ -506,7 +512,7 @@
         },
         {
           "command": "project-spec.deleteItem",
-          "when": "view =~ /^projectSpec.*Tree$/ && viewItem =~ /^(epic|story|task|bug|fr|nfr|adr|arch|tech-spec|sprint|release|db-table|cicd|auth-spec|member|concept)$/",
+          "when": "view =~ /^projectSpec.*Tree$/ && viewItem =~ /^(epic|story|task|bug|fr|nfr|adr|arch|tech-spec|sprint|release|db-table|cicd|auth-spec|member|concept|test-plan)$/",
           "group": "9_delete@1"
         },
         {
@@ -522,6 +528,11 @@
         {
           "command": "project-spec.newAuthSpec",
           "when": "view =~ /^projectSpec.*Tree$/ && viewItem == group-auth-spec",
+          "group": "inline@1"
+        },
+        {
+          "command": "project-spec.newTestPlan",
+          "when": "view =~ /^projectSpec.*Tree$/ && viewItem == group-test-plan",
           "group": "inline@1"
         },
         {
@@ -594,7 +605,7 @@
         "name": "project-spec_get-schema",
         "toolReferenceName": "project-spec_get-schema",
         "displayName": "Get Spec Document Schema",
-        "modelDescription": "Returns the complete schema and authoring guide for all Project Spec document types (epic, story, task, bug, fr, nfr, sprint, release, adr, arch, service, data-proc, db-table, cicd, auth-spec, member, concept). Call this BEFORE creating or editing any .spec file to understand the required front-matter fields, valid status values, ID naming conventions, directory locations, and expected body sections.",
+        "modelDescription": "Returns the complete schema and authoring guide for all Project Spec document types (epic, story, task, bug, fr, nfr, sprint, release, adr, arch, service, data-proc, db-table, cicd, auth-spec, member, concept, test-plan). Call this BEFORE creating or editing any .spec file to understand the required front-matter fields, valid status values, ID naming conventions, directory locations, and expected body sections.",
         "canBeReferencedInPrompt": true,
         "icon": "$(book)",
         "tags": [

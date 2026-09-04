@@ -18,6 +18,7 @@ const TYPE_LABELS: Record<string, string> = {
   "service": "Services",
   "data-proc": "Data Processes",
   "db-table": "Database Tables",
+  "test-plan": "Test Plans",
   member: "Team Members",
 };
 
@@ -35,6 +36,7 @@ const TYPE_ORDER = [
   "service",
   "data-proc",
   "db-table",
+  "test-plan",
   "member",
 ];
 
@@ -108,6 +110,9 @@ export function buildSpecContent(items: SpecItem[]): string {
       }
       if (d.processType) {
         lines.push(`- **Process type**: ${d.processType}`);
+      }
+      if (d.testScope) {
+        lines.push(`- **Test scope**: ${d.testScope}`);
       }
       if (item.body.trim()) {
         lines.push(`\n${item.body.trim()}`);

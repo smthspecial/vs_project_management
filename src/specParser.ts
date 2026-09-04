@@ -69,6 +69,7 @@ export function parseFrontMatter(content: string): {
     assigneeId: raw["assigneeId"],
     role: raw["role"],
     processType: raw["processType"] as "sync" | "async" | "cron" | undefined,
+    testScope: raw["testScope"] as "integration" | "e2e" | undefined,
   };
 
   return { data, body };
@@ -127,6 +128,9 @@ export function buildFrontMatter(data: SpecFrontMatter): string {
   if (data.processType) {
     lines.push(`processType: ${data.processType}`);
   }
+  if (data.testScope) {
+    lines.push(`testScope: ${data.testScope}`);
+  }
   lines.push(`created: ${data.created}`);
   lines.push("---");
   lines.push("");
@@ -159,6 +163,7 @@ export function getTypeDir(rootPath: string, type: ItemType): string {
     member: "team/members",
     cicd: "technical/cicd",
     "auth-spec": "technical/auth",
+    "test-plan": "technical/test-plans",
   };
   return path.join(getSpecDir(rootPath), subdirMap[type] ?? type);
 }
@@ -202,6 +207,7 @@ export function readAllSpecItems(rootPath: string): SpecItem[] {
     "technical/database",
     "technical/cicd",
     "technical/auth",
+    "technical/test-plans",
     "team/members",
     "concept/history",
     "concept/goals",

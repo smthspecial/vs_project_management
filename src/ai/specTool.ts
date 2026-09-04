@@ -32,7 +32,7 @@ const FRONT_MATTER_FIELDS_DOC = `\
 
 \`\`\`yaml
 id: EPIC-001          # uppercase ID — prefix from the Type Registry above
-type: epic            # MUST be one of the 17 exact type strings from the Type Registry
+type: epic            # MUST be one of the 18 exact type strings from the Type Registry
 title: "My Title"     # human-readable title — MUST be enclosed in double quotes
 status: draft         # MUST be one of the valid statuses for this type (see Type Registry)
 created: 2026-01-15   # ISO date YYYY-MM-DD (today)
@@ -55,6 +55,7 @@ dueDate: 2026-01-28   # epic / story / task / bug / sprint — ISO date YYYY-MM-
 releaseDate: 2026-06-30   # release — planned/actual release date (ISO date YYYY-MM-DD)
 relations: userId:TBL-001,orderId:TBL-002   # db-table — FK columns (NO spaces)
 processType: async                          # data-proc — sync | async | cron
+testScope: e2e                              # test-plan — REQUIRED: integration | e2e
 \`\`\``;
 
 // Display heading for each type's body-section block. Types not listed here
@@ -68,6 +69,7 @@ const BODY_SECTION_HEADINGS: Partial<Record<ItemType, string>> = {
   "data-proc": "data-proc (Data Process)",
   "db-table": "db-table (Database Table)",
   "auth-spec": "auth-spec (Auth Specification)",
+  "test-plan": "test-plan (Test Plan)",
 };
 
 // Display order for the generated body-sections doc.
@@ -87,6 +89,7 @@ const BODY_SECTION_ORDER: ItemType[] = [
   "db-table",
   "cicd",
   "auth-spec",
+  "test-plan",
 ];
 
 const EXAMPLE_TITLE = "…";
@@ -152,7 +155,7 @@ They live inside the \`.spec/\` folder at the workspace root.
 
 ---
 
-## TYPE REGISTRY — the only 17 valid document types
+## TYPE REGISTRY — the only 18 valid document types
 
 The \`type\` field in every front-matter block MUST be one of these exact lowercase strings.
 No other values exist. Using anything else (e.g. \`spec\`, \`technical-spec\`, \`auth\`, \`service-spec\`) will cause validation to fail.

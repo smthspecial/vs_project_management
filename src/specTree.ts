@@ -24,6 +24,7 @@ const TYPE_ICON: Record<string, string> = {
   cicd: "settings-gear",
   "auth-spec": "shield",
   concept: "note",
+  "test-plan": "beaker",
 };
 
 const STATUS_BADGE: Record<string, string> = {
@@ -173,6 +174,7 @@ export class SpecTreeDataProvider implements vscode.TreeDataProvider<AnyTreeItem
       "data-proc": "projectSpecTechnicalTree",
       cicd: "projectSpecTechnicalTree",
       "auth-spec": "projectSpecTechnicalTree",
+      "test-plan": "projectSpecTechnicalTree",
       "db-table": "projectSpecDatabaseTree",
       member: "projectSpecTeamTree",
       concept: "projectSpecConceptTree",
@@ -263,6 +265,7 @@ export class SpecTreeDataProvider implements vscode.TreeDataProvider<AnyTreeItem
           new TreeGroupItem("auth-spec", "Roles & Authorization", "shield"),
           new TreeGroupItem("spec", "Services", "file-code"),
           new TreeGroupItem("data-proc", "Data Processes", "graph"),
+          new TreeGroupItem("test-plan", "Test Plans", "beaker"),
         ];
       case "fr":
         return this.items
@@ -325,6 +328,13 @@ export class SpecTreeDataProvider implements vscode.TreeDataProvider<AnyTreeItem
       case "auth-spec":
         return this.items
           .filter((i) => i.data.type === "auth-spec")
+          .sort((a, b) => a.data.id.localeCompare(b.data.id))
+          .map(
+            (i) => new SpecTreeItem(i, vscode.TreeItemCollapsibleState.None),
+          );
+      case "test-plan":
+        return this.items
+          .filter((i) => i.data.type === "test-plan")
           .sort((a, b) => a.data.id.localeCompare(b.data.id))
           .map(
             (i) => new SpecTreeItem(i, vscode.TreeItemCollapsibleState.None),
@@ -579,6 +589,9 @@ export class SectionTreeAdapter implements vscode.TreeDataProvider<AnyTreeItem> 
             "Roles & Authorization",
             "shield",
           );
+        }
+        if (type === "test-plan") {
+          return new TreeGroupItem("test-plan", "Test Plans", "beaker");
         }
         break;
 

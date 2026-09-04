@@ -94,6 +94,17 @@ export function validateSpecFile(filePath: string, workspaceRoot: string): strin
         );
       }
     }
+    if (type === "test-plan") {
+      if (!data.testScope) {
+        errors.push(
+          "Missing required field: testScope (test-plan must have integration | e2e)",
+        );
+      } else if (!["integration", "e2e"].includes(data.testScope)) {
+        errors.push(
+          `Invalid testScope: "${data.testScope}". Must be integration | e2e`,
+        );
+      }
+    }
 
     // --- type-specific optional field warnings ---
     if (

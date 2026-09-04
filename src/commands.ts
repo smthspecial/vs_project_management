@@ -994,6 +994,78 @@ async function createAuthSpec(
 }
 
 // ---------------------------------------------------------------------------
+// Test Plans
+// ---------------------------------------------------------------------------
+
+async function createTestPlan(
+  provider: SpecTreeDataProvider,
+  getRootPath: () => string | undefined,
+): Promise<void> {
+  const rootPath = await requireRootPath(getRootPath);
+  if (!rootPath) {
+    return;
+  }
+
+  const title = await vscode.window.showInputBox({
+    prompt: "Test plan title",
+    placeHolder: "e.g. Login flow, Checkout flow",
+    validateInput: (v) => (v.trim() ? null : "Title cannot be empty"),
+  });
+  if (!title) {
+    return;
+  }
+
+  const testScope = await vscode.window.showQuickPick(["integration", "e2e"], {
+    placeHolder: "Select test scope",
+  });
+  if (!testScope) {
+    return;
+  }
+
+  const items = provider.getAllItems();
+  const linkCandidates = items.filter(
+    (i) => i.data.type === "story" || i.data.type === "epic",
+  );
+  let linkedIds: string | undefined;
+  if (linkCandidates.length > 0) {
+    const picks = await vscode.window.showQuickPick(
+      linkCandidates.map((i) => ({
+        label: i.data.id,
+        description: i.data.title,
+      })),
+      {
+        placeHolder: "Link stories/epics this plan covers (optional)",
+        canPickMany: true,
+      },
+    );
+    if (picks && picks.length > 0) {
+      linkedIds = picks.map((p) => p.label).join(",");
+    }
+  }
+
+  const id = generateId(items, "test-plan");
+  const dir = getTypeDir(rootPath, "test-plan");
+  ensureDir(dir);
+  const filePath = path.join(dir, `${id.toLowerCase()}.md`);
+
+  const frontMatter = buildFrontMatter({
+    id,
+    type: "test-plan",
+    title: title.trim(),
+    status: "draft",
+    testScope: testScope as "integration" | "e2e",
+    linkedIds,
+    created: today(),
+  });
+
+  const body = BODY_TEMPLATES["test-plan"]!(title.trim());
+
+  fs.writeFileSync(filePath, frontMatter + body, "utf-8");
+  provider.refresh();
+  await openFile(filePath);
+}
+
+// ---------------------------------------------------------------------------
 // Team Members
 // ---------------------------------------------------------------------------
 
@@ -1456,6 +1528,10 @@ export function registerCommands(
 
     vscode.commands.registerCommand("project-spec.newAuthSpec", () =>
       createAuthSpec(provider, getRootPath),
+    ),
+
+    vscode.commands.registerCommand("project-spec.newTestPlan", () =>
+      createTestPlan(provider, getRootPath),
     ),
 
     vscode.commands.registerCommand("project-spec.newMember", () =>

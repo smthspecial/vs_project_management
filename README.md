@@ -35,7 +35,8 @@ All data lives in `.spec/` at the root of your workspace — commit it to versio
 │   ├── data-processes/       ← Data pipelines (dp-001.md, …)
 │   ├── database/             ← Database tables (tbl-001.md, …)
 │   ├── cicd/                 ← CI/CD pipeline docs (cicd-001.md, …)
-│   └── auth/                 ← Auth specifications (auth-001.md, …)
+│   ├── auth/                 ← Auth specifications (auth-001.md, …)
+│   └── test-plans/           ← Test plans (tp-001.md, …)
 ├── team/
 │   └── members/              ← Team members (mbr-001.md, …)
 └── concept/
@@ -78,7 +79,7 @@ Click the **Project Spec** icon in the Activity Bar to open the sidebar. Eight p
 | **Requirements** | Functional (FR) and Non-Functional (NFR) requirements |
 | **Backlog** | Epics → User Stories → Tasks & Bugs, in a hierarchy |
 | **Sprints & Releases** | Sprints and release milestones |
-| **Technical** | ADRs, Architecture docs, Services, Data Processes, CI/CD, Auth specs |
+| **Technical** | ADRs, Architecture docs, Services, Data Processes, CI/CD, Auth specs, Test Plans |
 | **Database** | Database table definitions with column and FK details |
 | **Team** | Team members and their roles |
 | **Concept** | Product concept — history, goals, principles, risks, system design, system implementation |
@@ -182,6 +183,7 @@ All commands are available via the Command Palette under **Project Spec**:
 | **New Data Process** | Create a Data Process doc (sync/async/cron) |
 | **New CI/CD Pipeline Doc** | Create a CI/CD pipeline document |
 | **New Auth Specification** | Create an Auth Specification |
+| **New Test Plan** | Create a Test Plan (integration or e2e) with Happy Path / Edge Case / Abuse Case sections |
 
 **Database & Team**
 
@@ -225,7 +227,7 @@ All commands are available via the Command Palette under **Project Spec**:
 | ADR | `proposed` → `accepted` → `deprecated` → `superseded` |
 | Sprint | `planned` → `active` → `done` |
 | Release | `draft` → `active` → `released` |
-| Arch, Service, Data Process, CI/CD, Auth | `draft` → `active` → `deprecated` |
+| Arch, Service, Data Process, CI/CD, Auth, Test Plan | `draft` → `active` → `deprecated` |
 | DB Table | `draft` → `active` → `done` |
 | Member | `draft` → `active` |
 | Concept | `draft` → `active` → `deprecated` |
@@ -313,11 +315,14 @@ You can interact naturally:
 
 ## Using with Codex (and other AGENTS.md-aware agents)
 
-`.spec/AGENTS.md` (above) documents the same 17-type registry and creation workflow as the Copilot and Claude files, without assuming any Claude-specific features. It's placed inside `.spec/` rather than at the project root: AGENTS.md is a nested, "closest file wins" convention, so this file governs only work inside `.spec/` and leaves a project-root `AGENTS.md` — for the rest of your codebase — untouched.
+`.spec/AGENTS.md` (above) documents the same 18-type registry and creation workflow as the Copilot and Claude files, without assuming any Claude-specific features. It's placed inside `.spec/` rather than at the project root: AGENTS.md is a nested, "closest file wins" convention, so this file governs only work inside `.spec/` and leaves a project-root `AGENTS.md` — for the rest of your codebase — untouched.
 
 ---
 
 ## Release Notes
+
+### Unreleased
+- New Test Plan document type: `technical/test-plans/`, scoped to `integration` or `e2e`, with Happy Path / Edge Case / Abuse Case body sections
 
 ### 0.0.11
 - Concept panel with six sub-types (history, goals, principles, risks, system design, system implementation)

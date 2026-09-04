@@ -36,7 +36,7 @@ This workspace uses the **Project Spec** VS Code extension. All project document
 3. \`project-spec_write-file\` at the workspace-relative path (e.g. \`.spec/backlog/epics/epic-004.md\`).
 4. \`project-spec_validate-file\` to confirm it's valid.
 
-## TYPE REGISTRY — the only 17 valid document types
+## TYPE REGISTRY — the only 18 valid document types
 
 ${TYPE_REGISTRY_TABLE}
 
@@ -92,7 +92,7 @@ Before creating a new item, check whether one already exists: \`Grep\` for keywo
 
 This applies whether you're creating one item or a whole batch (e.g. an epic with its stories and tasks) — repeat steps 1–4 per file.
 
-## Type registry — the only 17 valid document types
+## Type registry — the only 18 valid document types
 
 ${TYPE_REGISTRY_TABLE}
 
@@ -137,7 +137,7 @@ All project documentation lives in the \`.spec/\` folder as YAML front-matter Ma
 3. Write the file at its workspace-relative path, e.g. \`.spec/backlog/epics/epic-004.md\`, matching the front-matter and body conventions of existing files of that type.
 4. Check the front matter against the rules below by hand before considering it done — there's no separate validation tool.
 
-## TYPE REGISTRY — the only 17 valid document types
+## TYPE REGISTRY — the only 18 valid document types
 
 ${TYPE_REGISTRY_TABLE}
 

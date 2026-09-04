@@ -96,6 +96,16 @@ export const BODY_TEMPLATES: Partial<Record<ItemType, BodyTemplate>> = {
     `## Roles\n\n| Role | Description |\n|------|-------------|\n| | |\n\n` +
     `## Authorization Matrix\n\n| Resource | Role |\n|----------|------|\n| | |\n\n` +
     `## Enforcement\n\n- \n`,
+
+  "test-plan": (title) =>
+    `## Overview\n\nDescribe what this test plan covers: ${title}.\n\n` +
+    `<!-- Set \`testScope: integration\` or \`testScope: e2e\` in front matter. ` +
+    `Set \`linkedIds: US-001,EPIC-001\` to link the story/epic this plan covers. -->\n\n` +
+    `## Preconditions\n\n- \n\n` +
+    `## Happy Path\n\n- [ ] Scenario: \n  - Steps: \n  - Expected result: \n\n` +
+    `## Edge Cases\n\n- [ ] Scenario: \n  - Steps: \n  - Expected result: \n\n` +
+    `## Abuse Cases\n\n- [ ] Scenario: \n  - Steps: \n  - Expected result: \n\n` +
+    `## Out of Scope\n\n- \n`,
 };
 
 // member's body needs both a title and a role, so it doesn't fit the
